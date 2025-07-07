@@ -1,0 +1,4 @@
+No executable binary is provided in this directory since it is unlikely to
+compile on another system. To time the emulator, please use one of the linux
+containers.
+

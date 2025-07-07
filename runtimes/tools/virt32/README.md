@@ -1,5 +1,10 @@
 
-# Virt32
+# virt32
+
+TODO: clean this up
+
+A virtual segmented memory allocator...
+This is not a UM runtime unto itself, but a tool for accelerating memory access for other UM runtimes.
 
 A memory allocator designed to accelerate address translations for 32-bit virtual machines on 64-bit systems. Developed to reduce memory access overhead for the Universal Machine, a 32-bit virtual machine with a RISC-style instruction set.
 
