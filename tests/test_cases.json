@@ -1,0 +1,111 @@
+{
+  "basic": [
+    {
+      "name": "print-six",
+      "program": "print-six.um",
+      "expected": "6"
+    },
+    {
+      "name": "hello-world",
+      "program": "hello.um",
+      "expected": "Hello, world.\n"
+    },
+    {
+      "name": "addition",
+      "program": "add.um",
+      "expected": "6"
+    },
+    {
+      "name": "simple-multiplication",
+      "program": "simple_mult.um",
+      "expected": "6"
+    },
+    {
+      "name": "simple-division",
+      "program": "simple_div.um",
+      "expected": "6"
+    },
+    {
+      "name": "nand-operation",
+      "program": "nand.um",
+      "expected": "7"
+    },
+    {
+      "name": "conditional-move-yes",
+      "program": "condmove_yes.um",
+      "expected": "7"
+    },
+    {
+      "name": "conditional-move-no",
+      "program": "condmove_no.um",
+      "expected": "6"
+    },
+    {
+      "name": "halt",
+      "program": "halt.um",
+      "expected": ""
+    }
+  ],
+  "io": [
+    {
+      "name": "echo",
+      "program": "echo.um",
+      "input": "8",
+      "expected": "8"
+    }
+  ],
+  "memory": [
+    {
+      "name": "map-segment",
+      "program": "map.um",
+      "expected": "6"
+    },
+    {
+      "name": "unmap-segment",
+      "program": "unmap.um",
+      "expected": "6"
+    },
+    {
+      "name": "load-store",
+      "program": "load.um",
+      "expected": "6"
+    },
+    {
+      "name": "two-map",
+      "program": "2map.um",
+      "expected": "6"
+    }
+  ],
+  "performance": [
+    {
+      "name": "sandmark",
+      "program": "sandmark.umz",
+      "timeout": 60,
+      "benchmark": true
+    },
+    {
+      "name": "midmark",
+      "program": "midmark.um",
+      "timeout": 30,
+      "benchmark": true
+    },
+    {
+      "name": "tuffer",
+      "program": "tuffer.um",
+      "timeout": 30,
+      "benchmark": true
+    }
+  ],
+  "stress": [
+    {
+      "name": "big-multiplication",
+      "program": "big-mult.um",
+      "timeout": 60
+    },
+    {
+      "name": "big-number",
+      "program": "big-num.um",
+      "timeout": 60
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+FROM --platform=linux/amd64 ubuntu:22.04
+
+# Set non-interactive mode for apt-get
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install necessary packages
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    g++ \
+    clang \
+    clang++ \
+    libc6-dev \
+    gdb \
+    valgrind \
+    git \
+    time \
+    cmake \
+    llvm-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user without a specific UID
+RUN useradd -m -s /bin/bash developer && \
+    mkdir -p /home/developer && \
+    chown -R developer:developer /home/developer
+
+USER developer
+WORKDIR /home/developer
+
+# Copy the entire project into the container
+COPY --chown=developer:developer . /home/developer/umlang/
+
+# Set working directory to the project
+WORKDIR /home/developer/umlang
+
+# Default to bash shell
+CMD ["/bin/bash"]
+
+# Build commands:
+# docker buildx build --platform=linux/amd64 -f Dockerfile.x86_64 -t umlang-x86_64 .
+# docker run --platform=linux/amd64 -it -v "$PWD:/home/developer/umlang" umlang-x86_64
