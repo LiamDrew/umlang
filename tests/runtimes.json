@@ -1,5 +1,5 @@
 {
-  "jit-darwin": {
+  "jit-darwin-arm64": {
     "path": "runtimes/jit/darwin-arm64/jit",
     "build_cmd": "cd runtimes/jit/darwin-arm64/ && make",
     "platforms": ["darwin-arm64"],
@@ -29,10 +29,10 @@
     "platforms": ["all"],
     "description": "Interpreted runtime (works on all platforms)"
   },
-  "llvm-ir": {
-    "path": "runtimes/optimized-jit/build/compiler",
-    "build_cmd": "cd runtimes/optimized-jit && mkdir -p build && cd build && cmake .. && make",
+  "optimized-jit": {
+    "path": "runtimes/optimized-jit/build/program",
+    "build_cmd": "cd runtimes/optimized-jit && mkdir -p build && cd build && cmake .. && make && rm program.ll && ./compiler ../../../umasm/binary/print-six.um >> program.ll && clang -o program program.ll",
     "platforms": ["darwin-arm64"],
-    "description": "LLVM IR-based runtime with optimizations"
+    "description": "TODO: this needs serious help with the build system.... LLVM IR-based runtime with optimizations"
   }
 }
