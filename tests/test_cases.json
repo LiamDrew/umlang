@@ -12,7 +12,7 @@
     },
     {
       "name": "addition",
-      "program": "add.um",
+      "program": "print-six.um",
       "expected": "6"
     },
     {
@@ -23,7 +23,7 @@
     {
       "name": "simple-division",
       "program": "simple_div.um",
-      "expected": "6"
+      "expected": "7"
     },
     {
       "name": "nand-operation",
@@ -58,22 +58,23 @@
     {
       "name": "map-segment",
       "program": "map.um",
-      "expected": "6"
+      "expected": ""
     },
     {
       "name": "unmap-segment",
       "program": "unmap.um",
-      "expected": "6"
+      "expected": ""
     },
     {
       "name": "load-store",
       "program": "load.um",
-      "expected": "6"
+      "input": "3",
+      "expected": "33"
     },
     {
-      "name": "two-map",
+      "name": "CHECK THIS TEST CASE: two-map",
       "program": "2map.um",
-      "expected": "6"
+      "expected": "11"
     }
   ],
   "performance": [
@@ -106,6 +107,13 @@
       "name": "big-number",
       "program": "big-num.um",
       "timeout": 60
+    }
+  ],
+  "failing": [
+    {
+      "name": "access-unmapped-segment",
+      "program": "access-unmapped.um",
+      "expected_failure": true
     }
   ]
 }

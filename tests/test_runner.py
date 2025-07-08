@@ -17,7 +17,7 @@ class TestRunner:
     def __init__(self, repo_root: str):
         self.repo_root = repo_root
         self.tests_dir = os.path.join(repo_root, "tests")
-        self.umasm_dir = os.path.join(repo_root, "umasm", "umbinary")
+        self.umasm_dir = os.path.join(repo_root, "umasm", "binary")
         
         # Detect platform
         self.platform_info = self._detect_platform()
@@ -135,6 +135,8 @@ class TestRunner:
         cmd = [executable, program_path]
         input_data = test.get("input")
         timeout = test.get("timeout", 30)
+        expected_failure = test.get("expected_failure", False)
+        expected_exit_code = test.get("expected_exit_code")
         
         # Run the test
         start_time = time.time()
@@ -148,6 +150,16 @@ class TestRunner:
             )
             execution_time = time.time() - start_time
             
+            # Handle expected failure tests
+            if expected_failure:
+                if result.returncode == 0:
+                    return False, f"Expected failure but program succeeded", execution_time
+                elif expected_exit_code is not None and result.returncode != expected_exit_code:
+                    return False, f"Expected exit code {expected_exit_code}, got {result.returncode}", execution_time
+                else:
+                    return True, f"Failed as expected (exit code {result.returncode})", execution_time
+            
+            # Handle normal tests
             if result.returncode != 0:
                 return False, f"Runtime error (exit code {result.returncode}): {result.stderr}", execution_time
             
@@ -163,10 +175,16 @@ class TestRunner:
             
         except subprocess.TimeoutExpired:
             execution_time = time.time() - start_time
-            return False, f"Timeout after {timeout}s", execution_time
+            if expected_failure:
+                return True, f"Timed out as expected after {timeout}s", execution_time
+            else:
+                return False, f"Timeout after {timeout}s", execution_time
         except Exception as e:
             execution_time = time.time() - start_time
-            return False, f"Execution error: {str(e)}", execution_time
+            if expected_failure:
+                return True, f"Exception as expected: {str(e)}", execution_time
+            else:
+                return False, f"Execution error: {str(e)}", execution_time
     
     def run_test_suite(self, runtime_name: str, suite_name: Optional[str] = None) -> None:
         """Run tests for a specific runtime."""

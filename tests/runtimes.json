@@ -1,31 +1,37 @@
 {
   "jit-darwin": {
-    "path": "runtimes/jit/darwin-arm64/jit/jit",
-    "build_cmd": "cd runtimes/jit/darwin-arm64/jit && make",
+    "path": "runtimes/jit/darwin-arm64/jit",
+    "build_cmd": "cd runtimes/jit/darwin-arm64/ && make",
     "platforms": ["darwin-arm64"],
     "description": "JIT compiler for macOS ARM64"
   },
   "jit-linux-x86": {
-    "path": "runtimes/jit/linux-x86-64-container/jit/jit",
-    "build_cmd": "cd runtimes/jit/linux-x86-64-container/jit && make",
+    "path": "runtimes/jit/linux-x86_64/jit",
+    "build_cmd": "cd runtimes/jit/linux-x86_64-container/ && make",
     "platforms": ["linux-x86_64"],
     "description": "JIT compiler for Linux x86-64"
   },
   "jit-linux-arm64": {
-    "path": "runtimes/jit/linux-arm64-container/jit/jit",
-    "build_cmd": "cd runtimes/jit/linux-arm64-container/jit && make",
+    "path": "runtimes/jit/linux-arm64/jit",
+    "build_cmd": "cd runtimes/jit/linux-arm64/ && make",
     "platforms": ["linux-arm64"],
     "description": "JIT compiler for Linux ARM64"
   },
-  "interp": {
-    "path": "runtimes/interp/um",
-    "build_cmd": "cd runtimes/interp && make",
+  "interpreter": {
+    "path": "runtimes/interpreter/um",
+    "build_cmd": "cd runtimes/interpreter && make",
+    "platforms": ["all"],
+    "description": "Interpreted runtime (works on all platforms)"
+  },
+  "original-interpreter": {
+    "path": "runtimes/original-interpreter/um",
+    "build_cmd": "cd runtimes/original-interpreter && make",
     "platforms": ["all"],
     "description": "Interpreted runtime (works on all platforms)"
   },
   "llvm-ir": {
-    "path": "runtimes/ir/build/compiler",
-    "build_cmd": "cd runtimes/ir && mkdir -p build && cd build && cmake .. && make",
+    "path": "runtimes/optimized-jit/build/compiler",
+    "build_cmd": "cd runtimes/optimized-jit && mkdir -p build && cd build && cmake .. && make",
     "platforms": ["darwin-arm64"],
     "description": "LLVM IR-based runtime with optimizations"
   }

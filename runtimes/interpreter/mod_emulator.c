@@ -34,7 +34,7 @@ static inline bool exec_instr(Instruction word,
 static inline uint32_t map_segment(uint8_t *umem, uint32_t size);
 
 static inline void unmap_segment(uint32_t segment);
-inline void load_segment(uint32_t index, uint8_t *umem);
+static inline void load_segment(uint32_t index, uint8_t *umem);
 
 int main(int argc, char *argv[])
 {
@@ -246,7 +246,7 @@ static inline void unmap_segment(uint32_t segment)
     vs_free(segment);
 }
 
-inline void load_segment(uint32_t index, uint8_t *umem)
+static inline void load_segment(uint32_t index, uint8_t *umem)
 {
     /* Return immediately if loading elsewhere in the zero segment */
     if (index == 0)
