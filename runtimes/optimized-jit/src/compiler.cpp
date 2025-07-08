@@ -172,7 +172,7 @@ void Compiler::compileInstruction(uint32_t word)
     b = (word >> 3) & 0x7;
     a = (word >> 6) & 0x7;
 
-    std::cerr << "Opcode is: " << opcode << std::endl;
+    // std::cerr << "Opcode is: " << opcode << std::endl;
 
     switch (opcode) {
         case 13: {
@@ -270,9 +270,9 @@ llvm::Error Compiler::executeJIT()
     auto mainFunc = reinterpret_cast<int(*)()>(mainAddr);
     
     // Execute the function
-    std::cout << "Executing JIT compiled program..." << std::endl;
+    // std::cout << "Executing JIT compiled program..." << std::endl;
     int result = mainFunc();
-    std::cout << "\nProgram finished with exit code: " << result << std::endl;
+    // std::cout << "\nProgram finished with exit code: " << result << std::endl;
     
     return llvm::Error::success();
 }

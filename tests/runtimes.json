@@ -30,8 +30,8 @@
     "description": "Interpreted runtime (works on all platforms)"
   },
   "optimized-jit": {
-    "path": "runtimes/optimized-jit/build/program",
-    "build_cmd": "cd runtimes/optimized-jit && mkdir -p build && cd build && cmake .. && make && rm program.ll && ./compiler ../../../umasm/binary/print-six.um >> program.ll && clang -o program program.ll",
+    "path": "runtimes/optimized-jit/build/compiler",
+    "build_cmd": "cd runtimes/optimized-jit && mkdir -p build && cd build && cmake .. && make",
     "platforms": ["darwin-arm64"],
     "description": "TODO: this needs serious help with the build system.... LLVM IR-based runtime with optimizations"
   }
