@@ -1,50 +1,54 @@
 # umlang
-A high-performance JIT-compiled reimplementation of an interpreted assembly language.
+A performance-focused compiled reimplementation of an interpreted assembly language built on LLVM IR.
 
 ## Overview
-Umlang is a RISC-style assembly language that targets the Universal Machine (UM), a 32-bit virtual machine. This language and virtual machine specification were concieved by Carnigie Mellon's PoP group for the 2006 International Contest on Functional Programming (ICFP). The project specification and several sample UM programs are open-source under the GNU GPL. My reimplementation is governed by the same license. The orignal contest details and UM specification can be found here: [Ninth Annual IFCP Programming Contest](http://www.boundvariable.org/index.shtml). TODO: For convenience, I included a copy of the orignal UM spec in the `docs/` directory of this repo.
-<!-- http://www.boundvariable.org/um-spec.txt -->
+Umlang is a RISC-style assembly language that targets the Universal Machine (UM), a 32-bit virtual machine. This language and virtual machine specification were concieved by Carnigie Mellon's PoP group for the 2006 International Contest on Functional Programming (ICFP). The project specification and several sample UM programs are open-source under the GNU GPL. My reimplementation is governed by the same license. The orignal contest details and UM specification can be found at the [Ninth Annual IFCP Programming Contest website](http://www.boundvariable.org/index.shtml). For convenience, I included a copy of the orignal UM spec in the `docs/spec/um-spec.txt` directory of this repo.
 
-### Initial Emulator/Interpreter
-I first implemented a Universal Machine emulator as a homework assignment for the Machine Structure and Assembly Language Programming course at Tufts (CS40). I then profiled my emulator to achieve what I thought was maximum performance. This approach is effective, but leaves a lot of performance on the table.
+I've implemented 3 different UM runtimes with iterative improvements each time.
 
-### First JIT compiler runtime
-I went back and built a significantly faster runtime with a jit compiler
-2. A JIT compiler which directly translated umlang binaries into dynamically generated machine code on both ARM and x86 platforms. 4.5x improvement
+1. Initial Emulator.
+    * I first implemented a Universal Machine emulator as a homework assignment for the Machine Structure and Assembly Language Programming course at Tufts (CS40).
+    * I then profiled my emulator to achieve what I thought was maximum performance. 
+    * This approach is effective, but leaves a lot of performance on the table. (The emulator effectively functions as an interpreter.)
 
-I also saw an opportunity to improve memory access, and assembled a team to built a 32-bit memory allocator.
-I archived the original repository, which can be found here: TODO
-1. A 32-bit memory allocator built to simulate a 32-bit address space on a 64-bit system with minimal address translation overhead. This produced a 12.4% improvement
+2. First JIT compiler runtime
+    * I went back and built a significantly faster runtime with a jit compiler
+    * The JIT directly translated umlang binaries into dynamically generated machine code on both ARM and x86 platforms.
+    * I implemented the JIT compiler from scratch.
+    * I implemented dynamic machine code generation on both ARM and x86 platforms.
+    * This approach alone achieved a 3x performance improvement.
+    * I also saw an opportunity to reduce address translation overhead for Universal Machine memory accesses, and assembled a hackathon team to built a 32-bit memory allocator.
+    * The combination of these improvements produced a 3.5x speedup over the original emulator.
 
-This produced a huge performance improvement. When profiling the compiler, I observed that my program spent less than 1% of it's runtime compiling UM code, and over 99% executing UM instructions. I theorized that compiler optimizations might significantly reduce execution time.
+3. Optimized JIT-based runtime
+    * When profiling my original JIT compiler, I observed that my program spent less than 1% of it's runtime compiling UM code, and over 99% executing UM instructions. 
+    * I theorized that compiler optimizations might significantly reduce execution time. 
+    * To test my theory, I went back and reimplemented the VM with an JIT compiler built on top of LLVM IR. 
+    * I was able to leverage existing IR optimizations to achieve x performance increase.
 
-### Optimized JIT-based runtime
-To test my theory, I went back and reimplemented the UM a second time. I reimplemented the VM with an JIT compiler built on top of LLVM IR. I was able to leverage existing IR optimizations to achieve x performance increase.
+Along the way, I also implemented my own toolchain for umlang, including an assembler, disassembler, and runtime testing framework.
 
-Along the way, I implemented a complete toolchain for umlang (in addition to the runtime), including an assembler, disassembler, and complete testing framework for the language.
-
-Keep reading for a complete explanation of all the technical details, including the performance analysis of each approach.
+See below for a complete explanation of all the technical details, including the performance analysis of each runtime.
 
 ## Design
 
 The UM has 8 general-purpose 32 bit registers, an instruction pointer, and maps memory segments that are each identified by a 32 bit integer. Much like real RISC-V and ARM machine code instructions, each UM machine code instruction is packed in 4 byte "words", with certain bits to identify the opcode, source and destination registers, and values to load into registers. Unlike a standard computer, the UM's memory is oriented around these 4 byte words and is not byte-addressable.
 
 The UM recognizes 14 instructions:  
-
-Conditional Move  
-Addition  
-Multiplication  
-Division  
-Bitwise NAND  
-Map Memory Segment  
-Unmap Memory Segment  
-Load Register (from memory segment)  
-Store Register (into memory segment)  
-Load Immediate Value into register  
-Output register  
-Input into register   
-Halt  
-Load Program (see below)  
+* Conditional Move  
+* Addition  
+* Multiplication  
+* Division  
+* Bitwise NAND  
+* Map Memory Segment  
+* Unmap Memory Segment  
+* Load Register (from memory segment)  
+* Store Register (into memory segment)  
+* Load Immediate Value into register  
+* Output register  
+* Input into register   
+* Halt  
+* Load Program (see below)  
 
 One special memory segment mapped by the segment identifier 0 contains the UM machine code instructions that are currently being executed. The load program instruction can jump to a different point in this segment and continue executing, or can duplicate another memory segment and load it into the zero segment to be executed.
 
@@ -118,6 +122,7 @@ Professor Mark Sheldon, for giving me the idea to make a JIT compiler for the Un
 Tom Hebb, for sharing a similar JIT compiler he built years ago. Tom's project had several brilliant ideas that helped me improve my original JIT compiler significantly, most notably branching from the JIT compiled machine code to hand-written assembly (written at compile time) to handle complex instructions.
 
 Milo Goldstein, Jason Miller, Hameedah Lawal, and Yoda Ermias (my JumboHack 2025 teammates) for helping me designing and implement the [Virt32](https://github.com/LiamDrew/Virt32) memory allocator used in this project.
+The JumboHack 2025 Team
 
 Peter Wolfe, my project partner for the Univeral Machine assignment. 
 
@@ -178,3 +183,94 @@ The `/jit` directory contains the executable binary source code for the JIT comp
 7. Navigate to the `/jit` directory
 8. Compile with `make`
 9. Run a benchmark program that executes 2 million UM instructions with `./jit umasm/sandmark.umz`
+
+
+# Virt32
+
+A memory allocator designed to accelerate address translations for 32-bit virtual machines on 64-bit systems. Developed to reduce memory access overhead for the Universal Machine, a 32-bit virtual machine with a RISC-style instruction set.
+
+Created by Liam Drew, Hameedah Lawal, Milo Goldstein, Jason Miller, and Yoda Ermias.  
+Presented at JumboHack 2025 under the Mad Hacker track.
+
+## Overview
+
+The Virt32 module provides two main features:
+1. Allocate memory in a 32-bit address space. We implement our own versions of malloc, calloc, and free, providing user programs with an interface to manage memory within a virtualized 32-bit address space on a 64-bit machine.
+
+2. Translate these 32 bit address to 64 bit address so the program user can access host machine memory from the abstraction of their 32-bit virtual address.
+
+## Design
+
+The easiest way to simulate a 32-bit address space is to take the 64-bit result of a `malloc()` call, choose an arbitrary 32-bit identifier, and map the 32-bit identifier to the 64-bit virtual memory address in a table. While this may be easy, it comes at the cost of performance; whenever one needs to access memory known by a 32-bit address, one must first do a table lookup to convert the 32-bit address to a real 64-bit address. The lookup is O(1), but for a perfomance-sensitive application, that's not enough: it must also be fast at the hardware level.
+
+Our memory allocator takes a different approach. Instead of mapping arbitrary 32-bit identifiers to 64-bit memory addresses, we `mmap()` 4 Gigabytes of contiguous virtual memory and carve it up with our implementations of `malloc()` and `free()`. Our allocator treats the 64-bit address returned from the mmap() call as 32-bit address "0", and maps all future 32-bit addresses as *offsets* from that original 64-bit address. The mmaped memory doesn't change until it gets freed at the end of the program.
+
+Consider a sample memory allocation example written in Universal Machine assembly language (UMASM):
+```
+r1 := 3
+r2 := map_segment(r1 words)
+r1 := 8
+r3 := map_segment(r1 words)
+r1 := 4
+r4 := map_segment(r1 words)
+```
+
+The standard UM memory model will handle this in the following manner:
+![UM Memory Model with Segment Table](media/Table.png)
+(In this example, the zero segment is an arbitrary size.)  
+With the standard memory model, the results of these map_segment calls will be the following:
+```
+r2 = 1
+r3 = 2
+r4 = 3
+```
+
+For the same workload, consider the memory model implemented by our allocator:
+![UM Memory Model with Allocator](media/Allocator.png)
+With the modified memory model, the results of these map segment calls, expressed as 32-bit unsigned integers in hex, are:
+```
+r2 = 0x00010010
+r3 = 0x00010030
+r4 = 0x00010070
+```
+
+This works because these 32-bit addresses are arbitrary in the Universal Machine specification. To convert these 32-bit addresses into 64-bit addresses on the host machine, we can just add our 32-bit addresses to the base 64-bit address. To access memory at 32-bit address `0x00010010`:  
+```
+64 bit base address is 0x3000000000
+32-bit memory address is 0x00010010
+
+0x3000010010 = 0x3000000000 + 0x00010010
+```
+
+The key performance improvement is that all 32 to 64-bit address translations can be done with a single addition instruction instead of a memory access into an address mapping table. Even though significant portions of a frequently accessed address table would likely live in the cache for the duration of the program, accessing the L1 cache typically takes 3-5 CPU cycles on most processors, while an addition instruction can be completed in a single CPU cycle.
+
+Not only does addition save cycles compared to memory access, but not having the address table taking up space in the cache saves cache space for the frequently accessed memory addressses themselves. This outcome is the best of both words for the Universal Machine: 32-bit addressable memory being fully supported by the hardware resources of a 64-bit machine.
+
+
+### Why does our Memory Allocator make the Universal Machine faster?
+
+Every time the UM performs a Load Register or Store Register instruction, it needs to convert the 32-bit address it wants to store a 4 byte integer at into a 64-bit memory address where the integer will actually be stored. As described above, this requires a 32-bit to 64-bit address translation followed by a memory access at the 64-bit address. Doing the address translation with addition instead of a table lookup saves the host machine a few cycles when emulating these instructions.
+
+Saving a few cycles per instruction might not sound like much, but the Load/Store register instructions are incredibly common in many Universal Machine assembly language programs. Over hundreds of thousands of these instructions, the performance improvements adds up to a significant improvement; see the performance section below.
+
+## Allocator Performance
+To test the effectiveness of our allocator, we timed a profiled Universal Machine emulator implementation running `sandmark.umz`, a performance benchmark program written in Universal Machine assembly language. Here are the times we recorded for a emulator, first using a segment table to perform address translation, and then using our memory allocator. 
+
+| Allocator              | Architecture | Compiler  | OS     | Hardware   | Time (seconds) |
+| ---------------------- | ------------ | --------- | ------ | ---------- | -------------- |
+| Malloc & Segment Table | x64          | gcc -O2   | Linux  | Intel Xeon | 5.08           |
+| Virt32                 | x64          | gcc -O2   | Linux  | Intel Xeon | 4.45           |
+
+Our allocator produced a 12.4% performance improvement over a simple mapping approach!
+
+## Potential Improvements
+1. Memory Safety: In order to be adequately performant for use with the Universal Machine, this version of the allocator does not have any memory safety built 
+into its memory access interface. A less performant-sensitive application would benefit from bounds-checking measures built into this memory access interface.
+
+2. Recycling efficiency:  
+From profiling this allocator, we've determined that the biggest bottleneck in the program is recycling freed memory. The Universal Machine specification requires that all mapped segments have all bytes initialized to 0. In order to guarantee this, we must `memset` all recycled memory to 0 before it can be reallocated for use. This memset overhead was incurred every time a segment was recycled. This begged the question: what if we concurrent memsetly a recycled segment to 0 *after* the memory was freed in the first place so that when it came time to reallocate, the memory was ready for use with minimal overhead?  
+We prototyped a concurrent solution, but found that the overhead of locking and unlocking mutexes alone (which was necessary to protect the integrity of the recycler data structure) was greater than the cost of the blocking `memset()`, so we decided to keep the allocator single threaded. A more creatively designed recycler could potentially handle this limitation more effectively.
+
+3. External Fragmentation:
+When the 4GB heap memory is exhausted, the allocator will refuse new allocations that cannot be served from recycled segments, even if there is enough total memory available across multiple segments. This is a classic memory allocation problem, but it doesn't affect our application very much since the UM programs we wanted to profile don't come close to exhausting a 4 GB address space. Thus, we mostly ignored it.
+    
