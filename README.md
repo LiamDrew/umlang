@@ -4,40 +4,39 @@ A performance-focused compiled reimplementation of an interpreted assembly langu
 ## Overview
 Umlang is a RISC-style assembly language that targets the Universal Machine (UM), a 32-bit virtual machine. This language and virtual machine specification were created by Carnigie Mellon's Principles of Programming group for the 2006 International Contest on Functional Programming. The project specification and several sample UM programs are open-source under the GNU GPL v2, which also governs my project. The orignal contest details can be found at the [Ninth Annual IFCP Programming Contest website](http://www.boundvariable.org/index.shtml) and the UM spec can be found at `docs/spec/um-spec.txt`.
 
+Include this?
 Here's a simple umlang program that prints "hi":
 ```
-r1 := input()     // ASCII 'a'
-r2 := 10
-r3 := 1
-r3 := r1 + r2   // ASCII 'h'
-r2 := r2 + r3
-r4 := r1 + r3   // ASCII 'i'
-output r3
-output r4
-halt
+r1 := input();   // ASCII 'a'
+r2 := 10;
+r3 := 1;
+r3 := r1 + r2;   // ASCII 'h'
+r2 := r2 + r3;
+r4 := r1 + r3;   // ASCII 'i'
+output r3;
+output r4;
+halt;
 ```
 
-The focus of this project has been accelerating the umlang runtime, and not modifying the language itself. I've implemented three different runtimes in search of maximum performance.
+More complex programs can contain millions of umlang instructions.
+
+The focus of this project is accelerating the umlang runtime instead of modifying language itself. I've implemented three different runtimes in search of maximum performance.
 
 1. First Approach: Emulator.
-    * I implemented a Universal Machine emulator in the Machine Structure and Assembly Language Programming course at Tufts (CS40).
+    * I built a Universal Machine emulator in my Machine Structure & Assembly Language class at Tufts
     * This emulator effectively functions as an interpreter: it decodes umlang instructions and executes them one at a time, updating the virtual environment state each time.
-    * This approach is effective, but even when aggressively profiled, leaves a lot of performance on the table.
+    * This approach is effective but leaves a lot of performance on the table.
 
-2. Second Approach: Initial JIT compiler
-    * I went back and built a significantly faster runtime with a jit compiler
-    * The JIT directly translated umlang binaries into dynamically generated machine code on both ARM and x86 platforms.
-    * I implemented the JIT compiler from scratch.
-    * I implemented dynamic machine code generation on both ARM and x86 platforms. this means that i built my own compiler backend
-    * This approach alone achieved a 3x performance improvement.
-    * I also saw an opportunity to reduce address translation overhead for Universal Machine memory accesses, and assembled a hackathon team to built a 32-bit memory allocator.
-    * The combination of these improvements produced a 3.5x speedup over the original emulator.
+2. Second Approach: Original JIT Compiler
+    * I built a significantly (3x) faster umlang runtime by dynamically compiling umlang binaries into machine code and executing it
+    * This involved a greenfield implementation of two compiler backends, one for x86 and one for ARM
+    * I also led the development of an application-specific 32-bit memory allocator for reducing address translation overhead for memory accesses in the umlang runtime
+    * This accelerated the runtime by an additional 41%, producing a combined 3.5x speedup over the original emulator.
 
-3. Third Approach: Optimized JIT compiler
-    * When profiling my original JIT compiler, I observed that my program spent less than 1% of it's runtime compiling UM code, and over 99% executing UM instructions. 
-    * I theorized that compiler optimizations might significantly reduce execution time. 
-    * To test my theory, I went back and reimplemented the VM with an JIT compiler built on top of LLVM IR. 
-    * I was able to leverage existing IR optimizations to achieve TODO performance increase.
+3. Third Approach: Optimized JIT Compiler
+    * When profiling my original JIT compiler, I noticed that dynamic compilation took <1% of the time, and >99% of time was spent executing compiled instructions, creating an opportunity for compiler optimizations to improve performance.
+    * I implemented yet another umlang runtime, this time build on top of LLVM IR.
+    * Work in progresss: I was able to leverage existing TODO: X, Y, and Z IR optimizations to achieve TODO performance increase.
 
 To support the development and testing of these runtimes, I also implemented my own toolchain for umlang, including an assembler, disassembler, and testing framework.
 
@@ -139,6 +138,8 @@ Thanks to these two performance improvements, this JIT-based runtime executes UM
 
 ### Design Comparison: Optimized JIT Compiler vs Initial JIT Compiler
 
+TODO: Work in progress.
+
 
 ## Performance
 
@@ -191,6 +192,7 @@ The benchmark Universal Machine assembly language programs used to test these ru
 
 This feature would be relatively easy to add in both platform versions of the JIT.
 
+In particular, the memory allocator has a few opportunities for improvement:
 1. Memory Safety: In order to be adequately performant for use with the Universal Machine, this version of the allocator does not have any memory safety built 
 into its memory access interface. A less performant-sensitive application would benefit from bounds-checking measures built into this memory access interface.
 
