@@ -33,12 +33,12 @@ The focus of this project is accelerating the umlang runtime instead of modifyin
     * I also led the development of an application-specific 32-bit memory allocator for reducing address translation overhead for memory accesses in the umlang runtime
     * This accelerated the runtime by an additional 41%, producing a combined 3.5x speedup over the original emulator.
 
+Work in Progress:
+A complete toolchain for umlang, including an assembler, disassembler, and testing framework.
 3. Third Approach: Optimized JIT Compiler
     * When profiling my original JIT compiler, I noticed that dynamic compilation took <1% of the time, and >99% of time was spent executing compiled instructions, creating an opportunity for compiler optimizations to improve performance.
-    * I implemented yet another umlang runtime, this time build on top of LLVM IR.
-    * Work in progresss: I was able to leverage existing TODO: X, Y, and Z IR optimizations to achieve TODO performance increase.
-
-To support the development and testing of these runtimes, I also implemented my own toolchain for umlang, including an assembler, disassembler, and testing framework.
+    * I am working on implemented yet another umlang runtime, this time build on top of LLVM IR.
+    * I plan to leverage IR optimizations to accelerate the runtime even more
 
 Keep reading for a complete explanation of all the technical details, including the performance analysis of each runtime.
 
