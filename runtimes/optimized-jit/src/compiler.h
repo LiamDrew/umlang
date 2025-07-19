@@ -87,11 +87,18 @@ class Compiler {
         
         // Load program
         llvm::Error initializeJIT();
+
+
+        // NEW code
+            // Add these for label management
+        std::vector<llvm::BasicBlock*> instructionLabels;
+        
+        // Add this method
+        void createInstructionLabels(size_t numInstructions);
     
     public:
         Compiler();
         // Compiler(size_t programSize);
-
 
         void compileLoadProgram(int regB, int regC);
 

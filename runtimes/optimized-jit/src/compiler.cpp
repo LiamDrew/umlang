@@ -81,7 +81,7 @@ Compiler::Compiler() : builder(context)
     if (auto err = initializeJIT()) {
         std::cerr << "Failed to init JIT" << std::endl;
     }
-    
+
 }
 
 llvm::Error Compiler::initializeJIT()
