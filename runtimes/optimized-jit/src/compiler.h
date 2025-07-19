@@ -92,18 +92,8 @@ class Compiler {
         Compiler();
         // Compiler(size_t programSize);
 
-        // void compileProgram(const std::vector<uint32_t>& instructions);
-
-        // void setupProgram(const std::vector<uint32_t>& program);
-
-        // void compileAllInstructions();
-
-        // bool isTerminalInstruction(uint32_t word);
 
         void compileLoadProgram(int regB, int regC);
-
-        // void createInstructionBlocks();
-        // void compileLoadProgram(int regB, int regC);
 
         // Halt instruction compilation must be kept public for now
         void finishProgram();

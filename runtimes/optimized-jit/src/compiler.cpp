@@ -81,21 +81,7 @@ Compiler::Compiler() : builder(context)
     if (auto err = initializeJIT()) {
         std::cerr << "Failed to init JIT" << std::endl;
     }
-
-    // IDK about this mods.. this should be simpler
-
-    // // Create a variable to track the next instruction to execute
-    // nextInstructionPtr = builder.CreateAlloca(
-    //     llvm::Type::getInt32Ty(context),
-    //     nullptr,
-    //     "next_instruction"
-    // );
     
-    // // Initialize to instruction 0
-    // builder.CreateStore(
-    //     llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
-    //     nextInstructionPtr
-    // );
 }
 
 llvm::Error Compiler::initializeJIT()
@@ -144,89 +130,7 @@ void Compiler::readIntoRegister(int regC)
     builder.CreateStore(inputChar, registers[regC]);
 }
 
-// void Compiler::finishProgram() {
-//     // First, fix up all the fall-through branches
-//     for (size_t i = 0; i < instructionBlocks.size() - 1; i++) {
-//         llvm::BasicBlock* block = instructionBlocks[i];
-        
-//         // Check if this block already has a terminator
-//         if (!block->getTerminator()) {
-//             // Add fall-through to next instruction
-//             builder.SetInsertPoint(block);
-//             builder.CreateBr(instructionBlocks[i + 1]);
-//         }
-//     }
-    
-//     // Handle the last instruction block if it doesn't have a terminator
-//     if (!instructionBlocks.empty()) {
-//         llvm::BasicBlock* lastBlock = instructionBlocks.back();
-//         if (!lastBlock->getTerminator()) {
-//             builder.SetInsertPoint(lastBlock);
-//             llvm::Value* returnValue = builder.CreateLoad(
-//                 llvm::Type::getInt32Ty(context),
-//                 registers[0],
-//                 "return_val"
-//             );
-//             builder.CreateRet(returnValue);
-//         }
-//     }
-    
-//     // Now set up the dispatch block
-//     if (dispatchBlock) {
-//         builder.SetInsertPoint(dispatchBlock);
-        
-//         llvm::Value* nextInstr = builder.CreateLoad(
-//             llvm::Type::getInt32Ty(context),
-//             nextInstructionPtr,
-//             "next_instr"
-//         );
-        
-//         // Create switch statement
-//         llvm::BasicBlock* defaultBlock = llvm::BasicBlock::Create(
-//             context, 
-//             "invalid_jump", 
-//             currentFunction
-//         );
-        
-//         llvm::SwitchInst* switchInst = builder.CreateSwitch(
-//             nextInstr, 
-//             defaultBlock, 
-//             instructionBlocks.size()
-//         );
-        
-//         // Add case for each instruction
-//         for (size_t i = 0; i < instructionBlocks.size(); i++) {
-//             llvm::ConstantInt* caseValue = llvm::ConstantInt::get(
-//                 llvm::Type::getInt32Ty(context), 
-//                 i
-//             );
-//             switchInst->addCase(caseValue, instructionBlocks[i]);
-//         }
-        
-//         // Handle invalid jump (just return 0)
-//         builder.SetInsertPoint(defaultBlock);
-//         builder.CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0));
-//     }
-    
-//     // If no dispatch block was created, just return from the entry block
-//     if (instructionBlocks.empty()) {
-//         builder.CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0));
-//     }
-// }
-
-// void Compiler::finishProgram() {
-//     llvm::Value* returnValue = builder.CreateLoad(
-//         llvm::Type::getInt32Ty(context),
-//         registers[0],
-//         "return_val"
-//     );
-//     builder.CreateRet(returnValue);
-// }
-
 void Compiler::finishProgram() {
-    // Set up the halt block
-    // builder.SetInsertPoint(haltBlock);
-    
     llvm::Value* returnValue = builder.CreateLoad(
         llvm::Type::getInt32Ty(context),
         registers[0],
@@ -431,118 +335,8 @@ void Compiler::compileInstruction(uint32_t word)
             break;
         }
 
-        // // Create fall-through to next instruction (if not last)
-        // if (instructionIndex + 1 < instructionBlocks.size()) {
-        //     builder.CreateBr(instructionBlocks[instructionIndex + 1]);
-        // } else {
-        //     // Last instruction - jump to exit
-        //     builder.CreateBr(exitBlock);
-        // }
-
-        // currentInstructionIndex++;
-        // if (currentInstructionIndex < programSize) {
-        //     // Only create fall-through if this wasn't a terminal instruction
-        //     if (opcode != 7 && opcode != 12) {
-        //         builder.CreateBr(instructionBlocks[currentInstructionIndex]);
-        //     }
-        //     builder.SetInsertPoint(instructionBlocks[currentInstructionIndex]);
-        // }
-
-
     }
 }
-
-// void Compiler::compileInstruction(uint32_t word) {
-//     // Create a basic block for this instruction
-//     std::string blockName = "inst_" + std::to_string(currentInstructionIndex);
-//     llvm::BasicBlock* currentBlock = llvm::BasicBlock::Create(
-//         context, 
-//         blockName, 
-//         currentFunction
-//     );
-//     instructionBlocks.push_back(currentBlock);
-    
-//     // If this is the first instruction, branch to it from entry
-//     if (currentInstructionIndex == 0) {
-//         builder.CreateBr(currentBlock);
-//     }
-    
-//     // Set insertion point to this block
-//     builder.SetInsertPoint(currentBlock);
-    
-//     // Compile the actual instruction
-//     uint32_t opcode = (word >> 28) & 0xF;
-    
-//     uint32_t a = 0, b = 0, c = 0;
-//     c = word & 0x7;
-//     b = (word >> 3) & 0x7;
-//     a = (word >> 6) & 0x7;
-
-//     switch (opcode) {
-//         case 13: {
-//             // Load register
-//             a = (word >> 25) & 0x7;
-//             uint32_t val = word & 0x1FFFFFF;
-//             setRegisterValues(a, val);
-//             break;
-//         }
-        
-//         case 0: {
-//             conditionalMove(a, b, c);
-//             break;
-//         }
-        
-//         case 3: {
-//             compileAddition(a, b, c);
-//             break;
-//         }
-        
-//         case 4: {
-//             compileMul(a, b, c);
-//             break;
-//         }
-        
-//         case 5: {
-//             compileDiv(a, b, c);
-//             break;
-//         }
-        
-//         case 6: {
-//             compileNand(a, b, c);
-//             break;
-//         }
-        
-//         case 7: {
-//             // Halt - don't add fall-through
-//             currentInstructionIndex++;
-//             return;
-//         }
-        
-//         case 10: {
-//             printRegister(c);
-//             break;
-//         }
-        
-//         case 11: {
-//             readIntoRegister(c);
-//             break;
-//         }
-        
-//         case 12: {
-//             // Load program - jump to dispatch
-//             compileLoadProgram(b, c);
-//             currentInstructionIndex++;
-//             return;  // Don't add fall-through
-//         }
-        
-//         default:
-//             break;
-//     }
-    
-//     // For most instructions, just fall through to next instruction
-//     // We'll fix this up later if needed
-//     currentInstructionIndex++;
-// }
 
 void Compiler::compileLoadProgram(int regB, int regC) {
     // Load the target instruction index from register B
@@ -619,33 +413,4 @@ llvm::Error Compiler::executeJIT()
     return llvm::Error::success();
 }
 
-// llvm::Error Compiler::executeJIT()
-// {
-//     //verify module
-//     std::string errorStr;
-//     llvm::raw_string_ostream errorStream(errorStr);
-//     if (llvm::verifyModule(*module, &errorStream)) {
-//         return llvm::make_error<llvm::StringError>("Module verification failed: " + errorStr, llvm::inconvertibleErrorCode());
-//     }
 
-//     auto tsm = llvm::orc::ThreadSafeModule(std::move(module), std::make_unique<llvm::LLVMContext>(std::move(context)));
-
-//     if (auto err = jit->addIRModule(std::move(tsm))) {
-//         return err;
-//     }
-
-//     // look up main function
-//     auto mainSymbol = jit->lookup("main");
-//     if (not mainSymbol) {
-//         return mainSymbol.takeError();
-//     }
-
-//     auto mainAddr = mainSymbol->getValue();
-//     auto mainFunc = reinterpret_cast<int(*)()>(mainAddr);
-
-//     std::cout << "Executed JIT compiled" << std::endl;
-//     int result = mainFunc();
-//     std::cout << "\nProgram finished with exit code: " << result << std::endl;
-
-//     return llvm::Error::success();
-// }
