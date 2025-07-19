@@ -136,6 +136,18 @@ int main(int argc, char *argv[]) {
         uint32_t word = loader.program[i];
         compiler.compileInstruction(word);
     }
+
+    // Adding this here to avoid putting a terminating block in the middle of a program
+    compiler.finishProgram();
+
+    // // At this point, turn things over to the compiler
+    // Compiler compiler(loader.program.size()); // Pass program size
+    // for (size_t i = 0; i < loader.program.size(); i++) {
+    //     uint32_t word = loader.program[i];
+    //     compiler.compileInstruction(word);
+    // }
+
+    // compiler.finishProgram();
     
     if (useJIT) {
         // Execute using JIT

@@ -39,6 +39,7 @@ A complete toolchain for umlang, including an assembler, disassembler, and testi
     * When profiling my original JIT compiler, I noticed that dynamic compilation took <1% of the time, and >99% of time was spent executing compiled instructions, creating an opportunity for compiler optimizations to improve performance.
     * I am working on implemented yet another umlang runtime, this time build on top of LLVM IR.
     * I plan to leverage IR optimizations to accelerate the runtime even more
+Modifying the umlang segmented store instruction to support self-modification, but only when intentional.
 
 Keep reading for a complete explanation of all the technical details, including the performance analysis of each runtime.
 

@@ -1,3 +1,5 @@
 *.DS_Store
 /runtimes/optimized-jit/build
 CLAUDE.md
+/build
+.vscode/settings.json

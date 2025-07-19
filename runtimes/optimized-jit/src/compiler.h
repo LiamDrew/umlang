@@ -1,5 +1,7 @@
 #pragma once
 #include <cstdint>
+#include <vector>
+
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/IRBuilder.h"
@@ -16,9 +18,6 @@
 #include "llvm/IR/Verifier.h"
 
 
-
-
-
 class Compiler {
     private:
         llvm::LLVMContext context;
@@ -27,41 +26,87 @@ class Compiler {
         llvm::Function* currentFunction;
         llvm::Value* registers[8];
         llvm::Function* putcharFunc;
-        // llvm::Function* getcharFunc;
+        llvm::Function* getcharFunc;
+        
+        // std::vector<llvm::BasicBlock*> instructionBlocks;
+        // std::vector<uint32_t> instructions;
+        // size_t currentInstructionIndex = 0;
+        // llvm::BasicBlock* exitBlock;
+
+        // std::vector<llvm::BasicBlock*> instructionBlocks;
+        // llvm::BasicBlock* dispatchBlock;
+        // llvm::BasicBlock* haltBlock;
+        // size_t programSize;
+        // size_t currentInstructionIndex;
+        // bool dispatchCreated = false;
+        
+        // void createDispatchBlock();
+        // void compileLoadProgram(int regB, int regC);
+
+        std::vector<llvm::BasicBlock*> instructionBlocks;
+        llvm::BasicBlock* dispatchBlock = nullptr;
+        llvm::Value* nextInstructionPtr = nullptr;  // Points to next instruction to execute
+        size_t currentInstructionIndex = 0;
+        
+        void createDispatchBlock();
+        void jumpToDispatch();
+
         // llvm::Function* mapFunc;
         // llvm::Function* unmapFunc;
 
         // Execution engine
         std::unique_ptr<llvm::orc::LLJIT> jit;
 
-        // set initial register values
-        // UM addition
+ 
         // Load Register
         void setRegisterValues(int reg, int value);
 
         // Conditional Move
+        void conditionalMove(int regA, int regB, int regC);
 
         // Segmented Load
         // Segmented Store
-        // Addition
-        // Multiplication
-        // Division
-        // NAND
-        // Halt
+        
         // Map segment
         // Unmap segment
-        // Print register
-        // read into register
-        // Load program
+        
+        // Addition
         void compileAddition(int regA, int regB, int regC);
-
-        void finishProgram();
+        // Multiplication
+        void compileMul(int regA, int regB, int regC);
+        // Division
+        void compileDiv(int regA, int regB, int regC);
+        
+        // NAND
+        void compileNand(int regA, int regB, int recC);
+        
+        // Print register
         void printRegister(int regC);
-
+        // read into register
+        void readIntoRegister(int regC);
+        
+        // Load program
         llvm::Error initializeJIT();
     
     public:
         Compiler();
+        // Compiler(size_t programSize);
+
+        // void compileProgram(const std::vector<uint32_t>& instructions);
+
+        // void setupProgram(const std::vector<uint32_t>& program);
+
+        // void compileAllInstructions();
+
+        // bool isTerminalInstruction(uint32_t word);
+
+        void compileLoadProgram(int regB, int regC);
+
+        // void createInstructionBlocks();
+        // void compileLoadProgram(int regB, int regC);
+
+        // Halt instruction compilation must be kept public for now
+        void finishProgram();
 
         void compileInstruction(uint32_t word);
 
