@@ -94,9 +94,11 @@ class Compiler {
         std::vector<llvm::BasicBlock*> instructionLabels;
         
         // Add this method
-        void createInstructionLabels(size_t numInstructions);
+        // void createInstructionLabels(size_t numInstructions);
     
     public:
+        void createInstructionLabels(size_t numInstructions);
+
         Compiler();
         // Compiler(size_t programSize);
 

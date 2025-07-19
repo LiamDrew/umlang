@@ -259,8 +259,30 @@ void Compiler::compileNand(int regA, int regB, int regC) {
     builder.CreateStore(nandResult, registers[regA]);
 }
 
+// changes:
+void Compiler::createInstructionLabels(size_t numInstructions) {
+    // Create a label for each instruction
+    for (size_t i = 0; i < numInstructions; i++) {
+        std::string labelName = "instr_" + std::to_string(i);
+        llvm::BasicBlock* label = llvm::BasicBlock::Create(
+            context,
+            labelName,
+            currentFunction
+        );
+        instructionLabels.push_back(label);
+    }
+}
+
 void Compiler::compileInstruction(uint32_t word)
 {
+        // Insert the label for this instruction and jump to it
+    if (currentInstructionIndex < instructionLabels.size()) {
+        // Create a branch to the label
+        builder.CreateBr(instructionLabels[currentInstructionIndex]);
+        // Set insert point to the label
+        builder.SetInsertPoint(instructionLabels[currentInstructionIndex]);
+    }
+
     uint32_t opcode = (word >> 28) & 0xF;
 
     uint32_t a = 0;
@@ -336,6 +358,9 @@ void Compiler::compileInstruction(uint32_t word)
         }
 
     }
+
+        // At the end of the method, increment the instruction index
+    currentInstructionIndex++;
 }
 
 void Compiler::compileLoadProgram(int regB, int regC) {
