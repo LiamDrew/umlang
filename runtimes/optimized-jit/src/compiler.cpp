@@ -84,19 +84,18 @@ Compiler::Compiler() : builder(context)
 
     // IDK about this mods.. this should be simpler
 
-    // MODS 2
-    // Create a variable to track the next instruction to execute
-    nextInstructionPtr = builder.CreateAlloca(
-        llvm::Type::getInt32Ty(context),
-        nullptr,
-        "next_instruction"
-    );
+    // // Create a variable to track the next instruction to execute
+    // nextInstructionPtr = builder.CreateAlloca(
+    //     llvm::Type::getInt32Ty(context),
+    //     nullptr,
+    //     "next_instruction"
+    // );
     
-    // Initialize to instruction 0
-    builder.CreateStore(
-        llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
-        nextInstructionPtr
-    );
+    // // Initialize to instruction 0
+    // builder.CreateStore(
+    //     llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
+    //     nextInstructionPtr
+    // );
 }
 
 llvm::Error Compiler::initializeJIT()
@@ -145,96 +144,96 @@ void Compiler::readIntoRegister(int regC)
     builder.CreateStore(inputChar, registers[regC]);
 }
 
+// void Compiler::finishProgram() {
+//     // First, fix up all the fall-through branches
+//     for (size_t i = 0; i < instructionBlocks.size() - 1; i++) {
+//         llvm::BasicBlock* block = instructionBlocks[i];
+        
+//         // Check if this block already has a terminator
+//         if (!block->getTerminator()) {
+//             // Add fall-through to next instruction
+//             builder.SetInsertPoint(block);
+//             builder.CreateBr(instructionBlocks[i + 1]);
+//         }
+//     }
+    
+//     // Handle the last instruction block if it doesn't have a terminator
+//     if (!instructionBlocks.empty()) {
+//         llvm::BasicBlock* lastBlock = instructionBlocks.back();
+//         if (!lastBlock->getTerminator()) {
+//             builder.SetInsertPoint(lastBlock);
+//             llvm::Value* returnValue = builder.CreateLoad(
+//                 llvm::Type::getInt32Ty(context),
+//                 registers[0],
+//                 "return_val"
+//             );
+//             builder.CreateRet(returnValue);
+//         }
+//     }
+    
+//     // Now set up the dispatch block
+//     if (dispatchBlock) {
+//         builder.SetInsertPoint(dispatchBlock);
+        
+//         llvm::Value* nextInstr = builder.CreateLoad(
+//             llvm::Type::getInt32Ty(context),
+//             nextInstructionPtr,
+//             "next_instr"
+//         );
+        
+//         // Create switch statement
+//         llvm::BasicBlock* defaultBlock = llvm::BasicBlock::Create(
+//             context, 
+//             "invalid_jump", 
+//             currentFunction
+//         );
+        
+//         llvm::SwitchInst* switchInst = builder.CreateSwitch(
+//             nextInstr, 
+//             defaultBlock, 
+//             instructionBlocks.size()
+//         );
+        
+//         // Add case for each instruction
+//         for (size_t i = 0; i < instructionBlocks.size(); i++) {
+//             llvm::ConstantInt* caseValue = llvm::ConstantInt::get(
+//                 llvm::Type::getInt32Ty(context), 
+//                 i
+//             );
+//             switchInst->addCase(caseValue, instructionBlocks[i]);
+//         }
+        
+//         // Handle invalid jump (just return 0)
+//         builder.SetInsertPoint(defaultBlock);
+//         builder.CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0));
+//     }
+    
+//     // If no dispatch block was created, just return from the entry block
+//     if (instructionBlocks.empty()) {
+//         builder.CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0));
+//     }
+// }
+
+// void Compiler::finishProgram() {
+//     llvm::Value* returnValue = builder.CreateLoad(
+//         llvm::Type::getInt32Ty(context),
+//         registers[0],
+//         "return_val"
+//     );
+//     builder.CreateRet(returnValue);
+// }
+
 void Compiler::finishProgram() {
-    // First, fix up all the fall-through branches
-    for (size_t i = 0; i < instructionBlocks.size() - 1; i++) {
-        llvm::BasicBlock* block = instructionBlocks[i];
-        
-        // Check if this block already has a terminator
-        if (!block->getTerminator()) {
-            // Add fall-through to next instruction
-            builder.SetInsertPoint(block);
-            builder.CreateBr(instructionBlocks[i + 1]);
-        }
-    }
+    // Set up the halt block
+    // builder.SetInsertPoint(haltBlock);
     
-    // Handle the last instruction block if it doesn't have a terminator
-    if (!instructionBlocks.empty()) {
-        llvm::BasicBlock* lastBlock = instructionBlocks.back();
-        if (!lastBlock->getTerminator()) {
-            builder.SetInsertPoint(lastBlock);
-            llvm::Value* returnValue = builder.CreateLoad(
-                llvm::Type::getInt32Ty(context),
-                registers[0],
-                "return_val"
-            );
-            builder.CreateRet(returnValue);
-        }
-    }
-    
-    // Now set up the dispatch block
-    if (dispatchBlock) {
-        builder.SetInsertPoint(dispatchBlock);
-        
-        llvm::Value* nextInstr = builder.CreateLoad(
-            llvm::Type::getInt32Ty(context),
-            nextInstructionPtr,
-            "next_instr"
-        );
-        
-        // Create switch statement
-        llvm::BasicBlock* defaultBlock = llvm::BasicBlock::Create(
-            context, 
-            "invalid_jump", 
-            currentFunction
-        );
-        
-        llvm::SwitchInst* switchInst = builder.CreateSwitch(
-            nextInstr, 
-            defaultBlock, 
-            instructionBlocks.size()
-        );
-        
-        // Add case for each instruction
-        for (size_t i = 0; i < instructionBlocks.size(); i++) {
-            llvm::ConstantInt* caseValue = llvm::ConstantInt::get(
-                llvm::Type::getInt32Ty(context), 
-                i
-            );
-            switchInst->addCase(caseValue, instructionBlocks[i]);
-        }
-        
-        // Handle invalid jump (just return 0)
-        builder.SetInsertPoint(defaultBlock);
-        builder.CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0));
-    }
-    
-    // If no dispatch block was created, just return from the entry block
-    if (instructionBlocks.empty()) {
-        builder.CreateRet(llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0));
-    }
+    llvm::Value* returnValue = builder.CreateLoad(
+        llvm::Type::getInt32Ty(context),
+        registers[0],
+        "return_val"
+    );
+    builder.CreateRet(returnValue);
 }
-
-// void Compiler::finishProgram() {
-//     llvm::Value* returnValue = builder.CreateLoad(
-//         llvm::Type::getInt32Ty(context),
-//         registers[0],
-//         "return_val"
-//     );
-//     builder.CreateRet(returnValue);
-// }
-
-// void Compiler::finishProgram() {
-//     // Set up the halt block
-//     builder.SetInsertPoint(haltBlock);
-    
-//     llvm::Value* returnValue = builder.CreateLoad(
-//         llvm::Type::getInt32Ty(context),
-//         registers[0],
-//         "return_val"
-//     );
-//     builder.CreateRet(returnValue);
-// }
 
 void Compiler::printIR() {
     module->print(llvm::outs(), nullptr);
@@ -356,128 +355,19 @@ void Compiler::compileNand(int regA, int regB, int regC) {
     builder.CreateStore(nandResult, registers[regA]);
 }
 
-// void Compiler::compileInstruction(uint32_t word)
-// {
-//     uint32_t opcode = (word >> 28) & 0xF;
-
-//     uint32_t a = 0;
-
-//     uint32_t b = 0, c = 0;
-
-//     c = word & 0x7;
-//     b = (word >> 3) & 0x7;
-//     a = (word >> 6) & 0x7;
-
-//     // std::cerr << "Opcode is: " << opcode << std::endl;
-
-//     switch (opcode) {
-//         case 13: {
-//             // Load register
-//             a = (word >> 25) & 0x7;
-//             uint32_t val = word & 0x1FFFFFF;
-//             setRegisterValues(a, val);
-//             break;
-//         }
-
-//         case 0: {
-//             conditionalMove(a, b, c);
-//             break;
-//         }
-
-//         case 3: {
-//             // Adding two numbers
-//             compileAddition(a, b, c);
-//             break;
-//         }
-
-//         case 4: {
-//             compileMul(a, b, c);
-//             break;
-//         }
-
-//         case 5: {
-//             compileDiv(a, b, c);
-//             break;
-//         }
-
-//         case 6: {
-//             compileNand(a, b, c);
-//             break;
-//         }
-
-//         case 7: {
-//             // Finishing program
-//             // The nature of LLVM creates issues when putting the terminator here
-//             // finishProgram();
-//             builder.CreateBr(haltBlock);
-//             break;
-//         }
-
-//         case 10: {
-//             // add some IR to print out a particular register.
-//             printRegister(c);
-//             break;
-//         }
-
-//         case 11: {
-//             readIntoRegister(c);
-//             break;
-//         }
-
-//         case 12: {
-//             // load program
-//             std::cerr << "Trying to load program\n";
-//             // assert(false);
-//             compileLoadProgram(b, c);
-//             break;
-//         }
-
-//         // // Create fall-through to next instruction (if not last)
-//         // if (instructionIndex + 1 < instructionBlocks.size()) {
-//         //     builder.CreateBr(instructionBlocks[instructionIndex + 1]);
-//         // } else {
-//         //     // Last instruction - jump to exit
-//         //     builder.CreateBr(exitBlock);
-//         // }
-
-//         currentInstructionIndex++;
-//         if (currentInstructionIndex < programSize) {
-//             // Only create fall-through if this wasn't a terminal instruction
-//             if (opcode != 7 && opcode != 12) {
-//                 builder.CreateBr(instructionBlocks[currentInstructionIndex]);
-//             }
-//             builder.SetInsertPoint(instructionBlocks[currentInstructionIndex]);
-//         }
-
-
-//     }
-// }
-
-void Compiler::compileInstruction(uint32_t word) {
-    // Create a basic block for this instruction
-    std::string blockName = "inst_" + std::to_string(currentInstructionIndex);
-    llvm::BasicBlock* currentBlock = llvm::BasicBlock::Create(
-        context, 
-        blockName, 
-        currentFunction
-    );
-    instructionBlocks.push_back(currentBlock);
-    
-    // If this is the first instruction, branch to it from entry
-    if (currentInstructionIndex == 0) {
-        builder.CreateBr(currentBlock);
-    }
-    
-    // Set insertion point to this block
-    builder.SetInsertPoint(currentBlock);
-    
-    // Compile the actual instruction
+void Compiler::compileInstruction(uint32_t word)
+{
     uint32_t opcode = (word >> 28) & 0xF;
-    
-    uint32_t a = 0, b = 0, c = 0;
+
+    uint32_t a = 0;
+
+    uint32_t b = 0, c = 0;
+
     c = word & 0x7;
     b = (word >> 3) & 0x7;
     a = (word >> 6) & 0x7;
+
+    // std::cerr << "Opcode is: " << opcode << std::endl;
 
     switch (opcode) {
         case 13: {
@@ -487,63 +377,172 @@ void Compiler::compileInstruction(uint32_t word) {
             setRegisterValues(a, val);
             break;
         }
-        
+
         case 0: {
             conditionalMove(a, b, c);
             break;
         }
-        
+
         case 3: {
+            // Adding two numbers
             compileAddition(a, b, c);
             break;
         }
-        
+
         case 4: {
             compileMul(a, b, c);
             break;
         }
-        
+
         case 5: {
             compileDiv(a, b, c);
             break;
         }
-        
+
         case 6: {
             compileNand(a, b, c);
             break;
         }
-        
+
         case 7: {
-            // Halt - don't add fall-through
-            currentInstructionIndex++;
-            return;
+            // Finishing program
+            // The nature of LLVM creates issues when putting the terminator here
+            // finishProgram();
+            // builder.CreateBr(haltBlock);
+            break;
         }
-        
+
         case 10: {
+            // add some IR to print out a particular register.
             printRegister(c);
             break;
         }
-        
+
         case 11: {
             readIntoRegister(c);
             break;
         }
-        
+
         case 12: {
-            // Load program - jump to dispatch
+            // load program
+            std::cerr << "Trying to load program\n";
+            // assert(false);
             compileLoadProgram(b, c);
-            currentInstructionIndex++;
-            return;  // Don't add fall-through
-        }
-        
-        default:
             break;
+        }
+
+        // // Create fall-through to next instruction (if not last)
+        // if (instructionIndex + 1 < instructionBlocks.size()) {
+        //     builder.CreateBr(instructionBlocks[instructionIndex + 1]);
+        // } else {
+        //     // Last instruction - jump to exit
+        //     builder.CreateBr(exitBlock);
+        // }
+
+        // currentInstructionIndex++;
+        // if (currentInstructionIndex < programSize) {
+        //     // Only create fall-through if this wasn't a terminal instruction
+        //     if (opcode != 7 && opcode != 12) {
+        //         builder.CreateBr(instructionBlocks[currentInstructionIndex]);
+        //     }
+        //     builder.SetInsertPoint(instructionBlocks[currentInstructionIndex]);
+        // }
+
+
     }
-    
-    // For most instructions, just fall through to next instruction
-    // We'll fix this up later if needed
-    currentInstructionIndex++;
 }
+
+// void Compiler::compileInstruction(uint32_t word) {
+//     // Create a basic block for this instruction
+//     std::string blockName = "inst_" + std::to_string(currentInstructionIndex);
+//     llvm::BasicBlock* currentBlock = llvm::BasicBlock::Create(
+//         context, 
+//         blockName, 
+//         currentFunction
+//     );
+//     instructionBlocks.push_back(currentBlock);
+    
+//     // If this is the first instruction, branch to it from entry
+//     if (currentInstructionIndex == 0) {
+//         builder.CreateBr(currentBlock);
+//     }
+    
+//     // Set insertion point to this block
+//     builder.SetInsertPoint(currentBlock);
+    
+//     // Compile the actual instruction
+//     uint32_t opcode = (word >> 28) & 0xF;
+    
+//     uint32_t a = 0, b = 0, c = 0;
+//     c = word & 0x7;
+//     b = (word >> 3) & 0x7;
+//     a = (word >> 6) & 0x7;
+
+//     switch (opcode) {
+//         case 13: {
+//             // Load register
+//             a = (word >> 25) & 0x7;
+//             uint32_t val = word & 0x1FFFFFF;
+//             setRegisterValues(a, val);
+//             break;
+//         }
+        
+//         case 0: {
+//             conditionalMove(a, b, c);
+//             break;
+//         }
+        
+//         case 3: {
+//             compileAddition(a, b, c);
+//             break;
+//         }
+        
+//         case 4: {
+//             compileMul(a, b, c);
+//             break;
+//         }
+        
+//         case 5: {
+//             compileDiv(a, b, c);
+//             break;
+//         }
+        
+//         case 6: {
+//             compileNand(a, b, c);
+//             break;
+//         }
+        
+//         case 7: {
+//             // Halt - don't add fall-through
+//             currentInstructionIndex++;
+//             return;
+//         }
+        
+//         case 10: {
+//             printRegister(c);
+//             break;
+//         }
+        
+//         case 11: {
+//             readIntoRegister(c);
+//             break;
+//         }
+        
+//         case 12: {
+//             // Load program - jump to dispatch
+//             compileLoadProgram(b, c);
+//             currentInstructionIndex++;
+//             return;  // Don't add fall-through
+//         }
+        
+//         default:
+//             break;
+//     }
+    
+//     // For most instructions, just fall through to next instruction
+//     // We'll fix this up later if needed
+//     currentInstructionIndex++;
+// }
 
 void Compiler::compileLoadProgram(int regB, int regC) {
     // Load the target instruction index from register B
