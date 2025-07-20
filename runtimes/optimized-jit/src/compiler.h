@@ -89,15 +89,17 @@ class Compiler {
         llvm::Error initializeJIT();
 
 
-        // NEW code
-            // Add these for label management
         std::vector<llvm::BasicBlock*> instructionLabels;
-        
-        // Add this method
-        // void createInstructionLabels(size_t numInstructions);
-    
+
+        llvm::BasicBlock* haltBlock = nullptr;
+
+        void createHaltBlock();
+            
     public:
         void createInstructionLabels(size_t numInstructions);
+
+        void jumpToFirstInstruction();
+
 
         Compiler();
         // Compiler(size_t programSize);
