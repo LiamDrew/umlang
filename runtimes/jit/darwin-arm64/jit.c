@@ -607,7 +607,7 @@ void *load_program(uint32_t b_val, uint8_t *umem)
     assert(b_val != 0);
 
     /* Get the size of the segment we want to duplicate */
-    uint32_t *seg_addr = (uint32_t *)convert_address(umem, b_val);
+    uint32_t *seg_addr = (uint32_t *)convert_address(umem, b_val, uint32_t);
     uint32_t copy_size = seg_addr[-1];
 
     uint32_t num_words = copy_size / sizeof(uint32_t);

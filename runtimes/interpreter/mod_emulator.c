@@ -253,7 +253,7 @@ static inline void load_segment(uint32_t index, uint8_t *umem)
         return;
 
     /* Get the size of the segment we want to duplicate */
-    uint32_t *seg_addr = (uint32_t *)convert_address(umem, index);
+    uint32_t *seg_addr = convert_address(umem, index, uint32_t);
     uint32_t copy_size = seg_addr[-1];
 
     /* Reallocate the kernel size and copy the new segment into it */

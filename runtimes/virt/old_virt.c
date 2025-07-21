@@ -66,8 +66,8 @@ void kern_memcpy(uint32_t src_addr, uint32_t copy_size)
 
     /* Get real source and destination addresses to use with memcpy */
     uint8_t *umem = usable;
-    void *real_src = convert_address(umem, src_addr, void);
-    void *real_dest = convert_address(umem, 0, void);
+    void *real_src = convert_address(umem, src_addr);
+    void *real_dest = convert_address(umem, 0);
     memcpy(real_dest, real_src, copy_size);
     return;
 }

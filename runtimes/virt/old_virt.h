@@ -47,21 +47,9 @@ extern uint32_t start_unused;
 
 /* Memory utility functions */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef __cplusplus
-    #define VIRT_MALLOC_CAST(type, expr) static_cast<type>(expr)
-    #define convert_address(umem, addr, type) \
-        static_cast<type*>(static_cast<void*>((uint8_t *)(umem) + (addr)))
-#else
-    #define VIRT_MALLOC_CAST(type, expr) (expr)
-    #define convert_address(umem, addr, type) \
-        ((type *)((uint8_t *)umem + addr))
-#endif
-
 /* Using a macro is disgusting but the linker gave me no choice */
+#define convert_address(umem, addr) ((void *)((uint8_t *)umem + addr))
+
 inline uint32_t get_idx_from_alloc_size(uint32_t size)
 {
     /* Will allocate 1 block when it gets an exact fit */
@@ -82,7 +70,7 @@ inline Stack_T stack_push(Stack_T s, uint32_t elem)
     {
         /* Expand the stack */
         s.capacity *= 2;
-        uint32_t *temp = VIRT_MALLOC_CAST(uint32_t*, malloc(s.capacity * sizeof(uint32_t)));
+        uint32_t *temp = malloc(s.capacity * sizeof(uint32_t));
         for (uint32_t i = 0; i < s.size; i++)
         {
             temp[i] = s.stack[i];
@@ -137,7 +125,7 @@ inline void free_segment(uint8_t *umem, uint32_t seg_addr, Stack_T *rec)
 {
     uint32_t sys_addr = seg_addr - BOOK_SIZE;
 
-    uint32_t *virt = convert_address(umem, sys_addr, uint32_t);
+    uint32_t *virt = convert_address(umem, sys_addr);
     uint32_t cap = *virt;
 
     uint32_t index = ((cap + 8) / 32) - 1;
@@ -173,7 +161,7 @@ static inline uint32_t vs_calloc(uint8_t *umem, uint32_t size)
     /* check that a free segment is available */
     if (freed_seg != SEG_NOT_FOUND)
     {
-        uint32_t *freed_seg_addr = convert_address(umem, freed_seg, uint32_t);
+        uint32_t *freed_seg_addr = convert_address(umem, freed_seg);
 
         freed_seg_addr[-1] = size;
 
@@ -197,7 +185,7 @@ static inline uint32_t vs_calloc(uint8_t *umem, uint32_t size)
     /* Update the beginning of the unused heap */
     start_unused = user_start + user_cap;
 
-    uint32_t *user_addr = convert_address(umem, user_start, uint32_t);
+    uint32_t *user_addr = convert_address(umem, user_start);
 
     user_addr[-2] = user_cap;
     user_addr[-1] = size;
@@ -216,7 +204,7 @@ static inline void vs_free(uint32_t addr)
  * Store a uint32_t at a virtual address */
 static inline void set_at(uint8_t *umem, uint32_t addr, uint32_t value)
 {
-    uint32_t *dest = convert_address(umem, addr, uint32_t);
+    uint32_t *dest = convert_address(umem, addr);
     *dest = value;
 }
 
@@ -224,16 +212,12 @@ static inline void set_at(uint8_t *umem, uint32_t addr, uint32_t value)
  * Get the uint32_t stored at a virtual address */
 inline uint32_t get_at(uint8_t *umem, uint32_t addr)
 {
-    uint32_t *src = convert_address(umem, addr, uint32_t);
+    uint32_t *src = convert_address(umem, addr);
     return *src;
 }
 
 Stack_T stack_init(uint32_t size);
 
 void stack_free(Stack_T s);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

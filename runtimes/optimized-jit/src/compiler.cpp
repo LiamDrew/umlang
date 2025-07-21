@@ -7,6 +7,10 @@
 #include "llvm/Transforms/Utils/Cloning.h"
 #include <cassert>
 
+extern "C" {
+    #include "virt.h"
+}
+
 // Compiler::Compiler(size_t programSize) : builder(context), programSize(programSize)
 Compiler::Compiler() : builder(context)
 
