@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 ubuntu:22.04
+FROM --platform=linux/amd64 ubuntu:24.04
 
 # Set non-interactive mode for apt-get
 ENV DEBIAN_FRONTEND=noninteractive
@@ -8,16 +8,32 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     gcc \
     g++ \
-    clang \
-    clang++ \
+    clang-14 \
+    clang++-14 \
     libc6-dev \
     gdb \
     valgrind \
     git \
     time \
     cmake \
-    llvm-dev \
+    llvm-14-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# # Install necessary packages
+# RUN apt-get update && apt-get install -y \
+#     build-essential \
+#     gcc \
+#     g++ \
+#     clang \
+#     clang++ \
+#     libc6-dev \
+#     gdb \
+#     valgrind \
+#     git \
+#     time \
+#     cmake \
+#     llvm-dev \
+#     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user without a specific UID
 RUN useradd -m -s /bin/bash developer && \

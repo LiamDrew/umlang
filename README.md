@@ -227,7 +227,11 @@ Peter Wolfe, my orignal project partner for the Univeral Machine assignment.
 
 - Fix Docker image package conflicts with LLVM/Clang packages for IR runtime support
 
-- Fix virt module linking for linux platforms
+- Fix x86 build warning for JIT:
+```
+/usr/bin/ld: warning: utility.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+```
 
 - Complete assembler and disassembler
 

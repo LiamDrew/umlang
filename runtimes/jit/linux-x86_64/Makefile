@@ -1,4 +1,4 @@
-CC = clang
+CC = clang-14
 CFLAGS = -g -Wall -Wextra -Werror -Wpedantic -O2
 LDFLAGS =
 
@@ -11,8 +11,11 @@ jit.o: jit.c utility.h
 utility.o: utility.S utility.h
 	$(CC) -c utility.S
 
-virt.o: virt.c virt.h
-	$(CC) -c virt.c
+# virt.o: virt.c virt.h
+# 	$(CC) -c virt.c
+
+virt.o: ../../virt/virt.c ../../virt/virt.h
+	$(CC) -c ../../virt/virt.c
 
 .PHONY: clean
 clean:
