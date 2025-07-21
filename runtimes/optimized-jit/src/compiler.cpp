@@ -343,26 +343,13 @@ void Compiler::compileInstruction(uint32_t word)
         }
 
         case 7: {
-            // // Finishing program
-            // // The nature of LLVM creates issues when putting the terminator here
-            // // finishProgram();
-            // builder.CreateBr(haltBlock);
-            // // transfersControl = true;
-            // // break;
-            // currentInstructionIndex++;
-            // return;
-            // // break;
-
-                // Halt instruction
+            // Halt instruction
             if (!haltBlock) {
                 createHaltBlock();
             }
             builder.CreateBr(haltBlock);
             addedTerminator = true;
             break;
-
-            // currentInstructionIndex++;
-            // return;  // Don't add another branch after this
         }
 
         case 10: {
@@ -382,13 +369,7 @@ void Compiler::compileInstruction(uint32_t word)
             // assert(false);
             compileLoadProgram(b, c);
             addedTerminator = true;  // jumpToDispatch adds the terminator
-
-            // hasTerminator = true;
-            // transfersControl = true;  // This transfers control to dispatch
             break;
-            // currentInstructionIndex++;
-            // return;
-
         }
 
     }
@@ -521,23 +502,6 @@ void Compiler::jumpToFirstInstruction() {
 }
 
 void Compiler::finishProgram() {
-    //original
-    // llvm::Value* returnValue = builder.CreateLoad(
-    //     llvm::Type::getInt32Ty(context),
-    //     registers[0],
-    //     "return_val"
-    // );
-    // builder.CreateRet(returnValue);
-
-    // response A
-    //     // Branch to the halt block from the last instruction
-    // if (!instructionLabels.empty() && currentInstructionIndex > 0) {
-    //     builder.SetInsertPoint(instructionLabels[currentInstructionIndex-1]);
-    //     if (!builder.GetInsertBlock()->getTerminator()) {
-    //         builder.CreateBr(haltBlock);
-    //     }
-    // }
-
     // response B
     // If we're not already in the halt block, branch to it
     if (builder.GetInsertBlock() != haltBlock) {
@@ -575,45 +539,3 @@ void Compiler::createHaltBlock() {
 
     builder.SetInsertPoint(savedBlock, savedPoint);
 }
-
-// original
-// void Compiler::createDispatchBlock() {
-//     dispatchBlock = llvm::BasicBlock::Create(
-//         context, 
-//         "dispatch", 
-//         currentFunction
-//     );
-    
-//     // We'll populate this later in finishProgram()
-// }
-
-// response A
-    // Only branch to next instruction if this instruction doesn't transfer control
-// and we're not at the last instruction
-// if (!transfersControl && currentInstructionIndex + 1 < instructionLabels.size()) {
-//     builder.CreateBr(instructionLabels[currentInstructionIndex + 1]);
-// }
-
-//     // Branch to next instruction only if we don't transfer control
-// if (!transfersControl && currentInstructionIndex + 1 < instructionLabels.size()) {
-//     builder.CreateBr(instructionLabels[currentInstructionIndex + 1]);
-// }
-
-// // response B:
-// void Compiler::finishProgram() {
-//     // Create dispatch block if it hasn't been created yet
-//     if (!dispatchBlock && !instructionLabels.empty()) {
-//         // not really a fan of this conditional logic
-//         // assert(false);
-//         createDispatchBlock();
-//     }
-    
-//     // ... existing return logic ...
-//     llvm::Value* returnValue = builder.CreateLoad(
-//         llvm::Type::getInt32Ty(context),
-//         registers[0],
-//         "return_val"
-//     );
-//     builder.CreateRet(returnValue);
-// }
-
