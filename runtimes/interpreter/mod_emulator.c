@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#include "virt.h"
+#include "../virt/virt.h"
 
 #define NUM_REGISTERS 8
 #define POWER ((uint64_t)1 << 32) /* prevent 32-bit overflow with add & div */

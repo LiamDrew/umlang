@@ -216,4 +216,8 @@ inline uint32_t get_at(uint8_t *umem, uint32_t addr)
     return *src;
 }
 
+Stack_T stack_init(uint32_t size);
+
+void stack_free(Stack_T s);
+
 #endif

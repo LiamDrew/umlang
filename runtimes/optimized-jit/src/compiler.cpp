@@ -7,8 +7,8 @@
 #include "llvm/Transforms/Utils/Cloning.h"
 #include <cassert>
 
-Compiler::Compiler() : builder(context)
 // Compiler::Compiler(size_t programSize) : builder(context), programSize(programSize)
+Compiler::Compiler() : builder(context)
 
 {
     llvm::InitializeNativeTarget();
@@ -77,11 +77,25 @@ Compiler::Compiler() : builder(context)
         setRegisterValues(i, 0);
     }
 
+    //response B changes:
+    // After initializing registers, add:
+    nextInstructionPtr = builder.CreateAlloca(
+        llvm::Type::getInt32Ty(context),
+        nullptr,
+        "next_instruction_ptr"
+    );
+    
+    // Initialize to 0 (start at first instruction)
+    builder.CreateStore(
+        llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
+        nextInstructionPtr
+    );
+
     // Initialize JIT
     if (auto err = initializeJIT()) {
         std::cerr << "Failed to init JIT" << std::endl;
     }
-    
+
 }
 
 llvm::Error Compiler::initializeJIT()
@@ -130,14 +144,6 @@ void Compiler::readIntoRegister(int regC)
     builder.CreateStore(inputChar, registers[regC]);
 }
 
-void Compiler::finishProgram() {
-    llvm::Value* returnValue = builder.CreateLoad(
-        llvm::Type::getInt32Ty(context),
-        registers[0],
-        "return_val"
-    );
-    builder.CreateRet(returnValue);
-}
 
 void Compiler::printIR() {
     module->print(llvm::outs(), nullptr);
@@ -259,8 +265,31 @@ void Compiler::compileNand(int regA, int regB, int regC) {
     builder.CreateStore(nandResult, registers[regA]);
 }
 
+void Compiler::createInstructionLabels(size_t numInstructions) {
+    // Create a label for each instruction
+    for (size_t i = 0; i < numInstructions; i++) {
+        std::string labelName = "instr_" + std::to_string(i);
+        llvm::BasicBlock* label = llvm::BasicBlock::Create(
+            context,
+            labelName,
+            currentFunction
+        );
+        instructionLabels.push_back(label);
+    }
+}
+
 void Compiler::compileInstruction(uint32_t word)
 {
+    // // response B
+    //     // For the first instruction, we need to branch from entry to instr_0
+    // if (currentInstructionIndex == 0 && builder.GetInsertBlock()->getName() == "entry") {
+    //     builder.CreateBr(instructionLabels[0]);
+    // }
+    
+    // Set insert point to the current instruction's label
+    builder.SetInsertPoint(instructionLabels[currentInstructionIndex]);
+    
+
     uint32_t opcode = (word >> 28) & 0xF;
 
     uint32_t a = 0;
@@ -272,6 +301,11 @@ void Compiler::compileInstruction(uint32_t word)
     a = (word >> 6) & 0x7;
 
     // std::cerr << "Opcode is: " << opcode << std::endl;
+    // Keeping track of if the instruction we are compiling adds a terminator
+    // bool hasTerminator = false;
+
+    bool addedTerminator = false;
+
 
     switch (opcode) {
         case 13: {
@@ -309,10 +343,12 @@ void Compiler::compileInstruction(uint32_t word)
         }
 
         case 7: {
-            // Finishing program
-            // The nature of LLVM creates issues when putting the terminator here
-            // finishProgram();
-            // builder.CreateBr(haltBlock);
+            // Halt instruction
+            if (!haltBlock) {
+                createHaltBlock();
+            }
+            builder.CreateBr(haltBlock);
+            addedTerminator = true;
             break;
         }
 
@@ -329,20 +365,31 @@ void Compiler::compileInstruction(uint32_t word)
 
         case 12: {
             // load program
-            std::cerr << "Trying to load program\n";
+            // std::cerr << "Trying to load program\n";
             // assert(false);
             compileLoadProgram(b, c);
+            addedTerminator = true;  // jumpToDispatch adds the terminator
             break;
         }
 
     }
+
+    // Only add branch to next instruction if:
+    // 1. We didn't already add a terminator
+    // 2. There is a next instruction
+    if (!addedTerminator && currentInstructionIndex + 1 < instructionLabels.size()) {
+        builder.CreateBr(instructionLabels[currentInstructionIndex + 1]);
+    }
+    
+    currentInstructionIndex++;
 }
 
+// Original
 void Compiler::compileLoadProgram(int regB, int regC) {
     // Load the target instruction index from register B
     llvm::Value* targetIndex = builder.CreateLoad(
         llvm::Type::getInt32Ty(context),
-        registers[regB],
+        registers[regC],
         "load_target_index"
     );
     
@@ -360,6 +407,7 @@ void Compiler::jumpToDispatch() {
     builder.CreateBr(dispatchBlock);
 }
 
+//response B:
 void Compiler::createDispatchBlock() {
     dispatchBlock = llvm::BasicBlock::Create(
         context, 
@@ -367,8 +415,42 @@ void Compiler::createDispatchBlock() {
         currentFunction
     );
     
-    // We'll populate this later in finishProgram()
+    // Save current insert point
+    auto savedBlock = builder.GetInsertBlock();
+    auto savedPoint = builder.GetInsertPoint();
+    
+    // Set insert point to dispatch block
+    builder.SetInsertPoint(dispatchBlock);
+    
+    // Load the next instruction index
+    llvm::Value* index = builder.CreateLoad(
+        llvm::Type::getInt32Ty(context),
+        nextInstructionPtr,
+        "next_instr_index"
+    );
+    
+    // Create switch instruction (jump table)
+    // Default case will be the first instruction (or you could create an error block)
+    llvm::SwitchInst* jumpTable = builder.CreateSwitch(
+        index, 
+        instructionLabels[0],  // default destination
+        instructionLabels.size()  // number of cases
+    );
+    
+    // Add cases for each instruction
+    for (size_t i = 0; i < instructionLabels.size(); i++) {
+        llvm::ConstantInt* caseValue = llvm::ConstantInt::get(
+            llvm::Type::getInt32Ty(context), 
+            i
+        );
+        jumpTable->addCase(caseValue, instructionLabels[i]);
+    }
+    
+    // Restore insert point
+    builder.SetInsertPoint(savedBlock, savedPoint);
 }
+
+
 
 llvm::Error Compiler::executeJIT()
 {
@@ -413,4 +495,47 @@ llvm::Error Compiler::executeJIT()
     return llvm::Error::success();
 }
 
+void Compiler::jumpToFirstInstruction() {
+    if (!instructionLabels.empty()) {
+        builder.CreateBr(instructionLabels[0]);
+    }
+}
 
+void Compiler::finishProgram() {
+    // response B
+    // If we're not already in the halt block, branch to it
+    if (builder.GetInsertBlock() != haltBlock) {
+        if (!haltBlock) {
+            createHaltBlock();
+        }
+        
+        // Only create a branch if the current block doesn't have a terminator
+        if (!builder.GetInsertBlock()->getTerminator()) {
+            builder.CreateBr(haltBlock);
+        }
+    }
+}
+
+void Compiler::createHaltBlock() {
+    haltBlock = llvm::BasicBlock::Create(
+        context,
+        "halt",
+        currentFunction
+    );
+
+    auto savedBlock = builder.GetInsertBlock();
+    auto savedPoint = builder.GetInsertPoint();
+
+    // set insert point to halt block
+    builder.SetInsertPoint(haltBlock);
+
+    // add return instruction
+    llvm::Value* returnValue = builder.CreateLoad(
+        llvm::Type::getInt32Ty(context),
+        registers[0],
+        "return_val"
+    );
+    builder.CreateRet(returnValue);
+
+    builder.SetInsertPoint(savedBlock, savedPoint);
+}

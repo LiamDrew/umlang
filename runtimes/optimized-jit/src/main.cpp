@@ -132,6 +132,12 @@ int main(int argc, char *argv[]) {
     
     // At this point, turn things over to the compiler
     Compiler compiler;
+
+    compiler.createInstructionLabels(loader.program.size());
+
+    // Create initial branch to first instruction (add this line)
+    compiler.jumpToFirstInstruction();
+
     for (size_t i = 0; i < loader.program.size(); i++) {
         uint32_t word = loader.program[i];
         compiler.compileInstruction(word);

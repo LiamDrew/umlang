@@ -27,21 +27,6 @@ class Compiler {
         llvm::Value* registers[8];
         llvm::Function* putcharFunc;
         llvm::Function* getcharFunc;
-        
-        // std::vector<llvm::BasicBlock*> instructionBlocks;
-        // std::vector<uint32_t> instructions;
-        // size_t currentInstructionIndex = 0;
-        // llvm::BasicBlock* exitBlock;
-
-        // std::vector<llvm::BasicBlock*> instructionBlocks;
-        // llvm::BasicBlock* dispatchBlock;
-        // llvm::BasicBlock* haltBlock;
-        // size_t programSize;
-        // size_t currentInstructionIndex;
-        // bool dispatchCreated = false;
-        
-        // void createDispatchBlock();
-        // void compileLoadProgram(int regB, int regC);
 
         std::vector<llvm::BasicBlock*> instructionBlocks;
         llvm::BasicBlock* dispatchBlock = nullptr;
@@ -87,11 +72,22 @@ class Compiler {
         
         // Load program
         llvm::Error initializeJIT();
-    
+
+
+        std::vector<llvm::BasicBlock*> instructionLabels;
+
+        llvm::BasicBlock* haltBlock = nullptr;
+
+        void createHaltBlock();
+            
     public:
+        void createInstructionLabels(size_t numInstructions);
+
+        void jumpToFirstInstruction();
+
+
         Compiler();
         // Compiler(size_t programSize);
-
 
         void compileLoadProgram(int regB, int regC);
 
