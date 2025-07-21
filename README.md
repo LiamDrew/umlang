@@ -227,56 +227,12 @@ Peter Wolfe, my orignal project partner for the Univeral Machine assignment.
 
 - Fix Docker image package conflicts with LLVM/Clang packages for IR runtime support
 
-Complete:
-An interpreted runtime
-A JIT-compiled runtime
+- Fix x86 build warning for JIT:
+```
+/usr/bin/ld: warning: utility.o: missing .note.GNU-stack section implies executable stack
+/usr/bin/ld: NOTE: This behaviour is deprecated and will be removed in a future version of the linker
+```
 
-In progress:
-An assembler
-A disassembler
-A unit testing framework
-An optimized JIT-compiled runtime based on LLVM
+- Complete assembler and disassembler
 
-`runtimes/`:
-interp: a UM interpreter
-jit: a JIT compiler from UM binary to machine code
-
-This directory contains the UM tools and testing framework.
-
-/tools contains the UM assembler and disassembler
-/umbinary contains many UM assembled binaries for testing
-
-The runtest.sh script can be used to test runtimes.
-The maketest.sh script can be used to compile a UM assembly program into a UM
-binary and add it to the binary 
-
-It can be used in the following way:
-
-./umasm/test.sh [executable_name] // runs all tests
-
-./umasm/test.sh [executable_name] [test] // runs individual test
-
-## Running the Program
-1. Download the source code.  
-
-2. Choose a platform. There are 3 root directories: linux-x86-64-container, linux-arm64-container, and darwin-arm64. As their names suggest, the linux containers run linux on Arm64 and x86-64 platforms using docker. The darwin-arm64 directory doesn't use docker, and is intended to compile natively on an Arm-based Mac running MacOS. For darwin-arm64, skip to step 6.
-
-3. Build the docker image:  
-x86-64: ```docker buildx build --platform=linux/amd64 -t dev-tools-x86 .```  
-Arm64 (Aarch64): ```docker buildx build --platform=linux/arm64 -t dev-tools-aarch64 .```  
-Both containers have the utilities you need to run the program. They can each access their own `docker_shared` directory, which is shared between the container and your machine.
-
-4. Start the docker container:  
-x86-64: ```docker run --platform=linux/amd64 -it -v "$PWD/docker_shared:/home/developer/shared" dev-tools-x86```  
-Arm64: ```docker run --platform=linux/arm64 -it -v "$PWD/docker_shared:/home/developer/shared" dev-tools-aarch64```
-5. Navigate to the ```shared``` directory
-
-6. Each container root directory contains the following subdirectories: `/emulator`, `/jit`, `/umasm`.  
-The `/umasm` directory contains a variety of Universal Machine assembly language programs.  
-The `/emulator` directory contains an executable binary of a profiled emulator-based UM virtual runtime. The binary can be run with `./um ../umasm/[program.um]`. The emulator source code is intentionally omitted since the emulator is a CS40 project   
-The `/jit` directory contains the executable binary source code for the JIT compiler-based UM virtual runtime.
-
-7. Navigate to the `/jit` directory
-8. Compile with `make`
-9. Run a benchmark program that executes 2 million UM instructions with `./jit umasm/sandmark.umz`
-
+- Complete LLVM JIT runtime
