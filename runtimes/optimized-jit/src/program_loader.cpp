@@ -1,4 +1,4 @@
-#include "program_loader.h"
+#include "program_loader.hpp"
 
 uint64_t ProgramLoader::make_word(uint64_t word, unsigned width, unsigned lsb,
                    uint64_t value) {

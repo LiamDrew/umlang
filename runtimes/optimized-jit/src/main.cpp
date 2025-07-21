@@ -84,8 +84,8 @@
 #include <vector>
 #include <cstdint>
 #include <filesystem>
-#include "program_loader.h"
-#include "compiler.h"
+#include "program_loader.hpp"
+#include "compiler.hpp"
 
 int main(int argc, char *argv[]) {
     if (argc < 2 || argc > 3) {

@@ -1,4 +1,4 @@
-#include "compiler.h"
+#include "compiler.hpp"
 #include <iostream>
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
