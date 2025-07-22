@@ -25,8 +25,14 @@ class Compiler {
         llvm::IRBuilder<> builder;
         llvm::Function* currentFunction;
         llvm::Value* registers[8];
+
         llvm::Function* putcharFunc;
         llvm::Function* getcharFunc;
+        llvm::Function* vsCallocFunc;
+        llvm::Function* vsFreeFunc;
+
+        llvm::Value* usableMemPtr = nullptr;
+
 
         std::vector<llvm::BasicBlock*> instructionBlocks;
         llvm::BasicBlock* dispatchBlock = nullptr;
@@ -50,10 +56,16 @@ class Compiler {
         void conditionalMove(int regA, int regB, int regC);
 
         // Segmented Load
+        void compileLoad(int regA, int regB, int regC);
+
         // Segmented Store
+        void compileStore(int regA, int regB, int regC);
         
         // Map segment
+        void compileMap(int regB, int regC);
+
         // Unmap segment
+        void compileUnmap(int regC);
         
         // Addition
         void compileAddition(int regA, int regB, int regC);

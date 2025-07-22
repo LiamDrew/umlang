@@ -24,6 +24,7 @@ Compiler::Compiler() : builder(context)
 
     llvm::FunctionType* funcType = llvm::FunctionType::get(
         llvm::Type::getInt32Ty(context),
+        {llvm::PointerType::getUnqual(context)},
         false
     );
 
@@ -34,12 +35,24 @@ Compiler::Compiler() : builder(context)
         module.get()
     );
 
+    // set up usable mem to be used
+    llvm::Function::arg_iterator args = currentFunction->arg_begin();
+    llvm::Value* usableMemParam = &*args;
+    usableMemParam->setName("usable_mem");
+
     llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create(
         context,
         "entry",
         currentFunction
     );
     builder.SetInsertPoint(entryBlock);
+
+    usableMemPtr = builder.CreateAlloca(
+        llvm::PointerType::getUnqual(context),
+        nullptr,
+        "usable_mem_ptr"
+    );
+    builder.CreateStore(usableMemParam, usableMemPtr);
 
     llvm::FunctionType* putcharType = llvm::FunctionType::get(
         llvm::Type::getInt32Ty(context), // returns int
@@ -64,6 +77,42 @@ Compiler::Compiler() : builder(context)
         getcharType,
         llvm::Function::ExternalLinkage,
         "getchar",
+        module.get()
+    );
+
+    // NOTE: Be very very suspicious of this code... Pointer types are sus...
+    // llvm::FunctionType *vsCallocType = llvm::FunctionType::get(
+    //     llvm::Type::getInt32Ty(context),
+    //     {
+    //         llvm::PointerType::getUnqual(context),
+    //         llvm::Type::getInt32Ty(context)
+    //     },
+    //     false // not variadic
+    // );
+
+    llvm::FunctionType *vsCallocType = llvm::FunctionType::get(
+        llvm::Type::getInt32Ty(context),
+        {llvm::Type::getInt32Ty(context)},
+        false // not variadic
+    );
+
+    vsCallocFunc = llvm::Function::Create(
+        vsCallocType,
+        llvm::Function::ExternalLinkage,
+        "vs_calloc",
+        module.get()
+    );
+
+    llvm::FunctionType *vsFreeType = llvm::FunctionType::get(
+        llvm::Type::getVoidTy(context), //don't need void return type
+        {llvm::Type::getInt32Ty(context)},
+        false
+    );
+
+    vsFreeFunc = llvm::Function::Create(
+        vsFreeType,
+        llvm::Function::ExternalLinkage,
+        "vs_free",
         module.get()
     );
 
@@ -117,35 +166,20 @@ llvm::Error Compiler::initializeJIT()
 
     auto putcharAddr = llvm::orc::ExecutorAddr::fromPtr(reinterpret_cast<void*>(&putchar));
     auto getcharAddr = llvm::orc::ExecutorAddr::fromPtr(reinterpret_cast<void*>(&getchar));
+    auto vsCallocAddr = llvm::orc::ExecutorAddr::fromPtr(reinterpret_cast<void*>(&vs_calloc));
+    auto vsFreeAddr = llvm::orc::ExecutorAddr::fromPtr(reinterpret_cast<void*>(&vs_free));
 
     llvm::orc::SymbolMap symbols;
     symbols[jit->mangleAndIntern("putchar")] = llvm::orc::ExecutorSymbolDef(putcharAddr, llvm::JITSymbolFlags::Exported);
     symbols[jit->mangleAndIntern("getchar")] = llvm::orc::ExecutorSymbolDef(getcharAddr, llvm::JITSymbolFlags::Exported);
+    symbols[jit->mangleAndIntern("vs_calloc")] = llvm::orc::ExecutorSymbolDef(vsCallocAddr, llvm::JITSymbolFlags::Exported);
+    symbols[jit->mangleAndIntern("vs_free")] = llvm::orc::ExecutorSymbolDef(vsFreeAddr, llvm::JITSymbolFlags::Exported);
 
     if (auto err = JD.define(llvm::orc::absoluteSymbols(symbols))) {
         return err;
     }
 
     return llvm::Error::success();
-}
-
-void Compiler::printRegister(int regC)
-{
-    llvm::Value* charValue = builder.CreateLoad(
-        llvm::Type::getInt32Ty(context),
-        registers[regC],
-        "putchar_value"
-    );
-
-    // call putchar with register value
-    builder.CreateCall(putcharFunc, {charValue}, "putchar_call");
-}
-
-void Compiler::readIntoRegister(int regC)
-{
-    llvm::Value* inputChar = builder.CreateCall(getcharFunc, {}, "getchar_call");
-
-    builder.CreateStore(inputChar, registers[regC]);
 }
 
 
@@ -325,6 +359,19 @@ void Compiler::compileInstruction(uint32_t word)
             break;
         }
 
+        case 1: {
+            // assert(false);
+            compileLoad(a, b, c);
+            break;
+
+        }
+
+        case 2: {
+            // assert(false);
+            compileStore(a, b, c);
+            break;
+        }
+
         case 3: {
             // Adding two numbers
             compileAddition(a, b, c);
@@ -353,6 +400,18 @@ void Compiler::compileInstruction(uint32_t word)
             }
             builder.CreateBr(haltBlock);
             addedTerminator = true;
+            break;
+        }
+
+        case 8: {
+            // Map segment
+            compileMap(b, c);
+            break;
+        }
+
+        case 9: {
+            // Unmap segment
+            compileUnmap(c);
             break;
         }
 
@@ -402,6 +461,60 @@ void Compiler::compileLoadProgram(int regB, int regC) {
     
     // Jump to dispatch
     jumpToDispatch();
+}
+
+void Compiler::printRegister(int regC)
+{
+    llvm::Value* charValue = builder.CreateLoad(
+        llvm::Type::getInt32Ty(context),
+        registers[regC],
+        "putchar_value"
+    );
+
+    // call putchar with register value
+    builder.CreateCall(putcharFunc, {charValue}, "putchar_call");
+}
+
+void Compiler::readIntoRegister(int regC)
+{
+    llvm::Value* inputChar = builder.CreateCall(getcharFunc, {}, "getchar_call");
+
+    builder.CreateStore(inputChar, registers[regC]);
+}
+
+void Compiler::compileMap(int regB, int regC)
+{
+    llvm::Value* mapSize = builder.CreateLoad(
+        llvm::Type::getInt32Ty(context),
+        registers[regC],
+        "load_map_size"
+    );
+
+    llvm::Value* mapResult = builder.CreateCall(vsCallocFunc, {mapSize}, "vs_calloc_call");
+
+    builder.CreateStore(mapResult, registers[regB]);
+}
+
+void Compiler::compileUnmap(int regC)
+{
+    llvm::Value *freeAddr = builder.CreateLoad(
+        llvm::Type::getInt32Ty(context),
+        registers[regC],
+        "unmap_addr"
+    );
+
+    // no name for void calls
+    builder.CreateCall(vsFreeFunc, {freeAddr});
+}
+
+void Compiler::compileLoad(int regA, int regB, int regC)
+{
+    return;
+}
+
+void Compiler::compileStore(int regA, int regB, int regC)
+{
+    return;
 }
 
 void Compiler::jumpToDispatch() {

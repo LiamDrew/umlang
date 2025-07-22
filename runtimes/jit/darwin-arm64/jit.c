@@ -491,7 +491,9 @@ size_t handle_halt(uint8_t *p)
 
 uint32_t map_segment(uint32_t size, uint8_t *umem)
 {
-    return vs_calloc(umem, size * sizeof(uint32_t));
+    (void)umem;
+    // return vs_calloc(umem, size * sizeof(uint32_t));
+    return vs_calloc(size * sizeof(uint32_t));
 }
 
 size_t inject_map_segment(uint8_t *p, unsigned b, unsigned c)
