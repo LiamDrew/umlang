@@ -1,0 +1,3 @@
+r0 := 50;
+output r0;
+halt;

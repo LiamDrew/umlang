@@ -1,0 +1,14 @@
+r7 := 49;
+r1 := 1;
+r5 := 11;
+r2 := map segment (r7 words);
+output r7;
+r6 := m[r0][r5];
+m[r2][r0] := r6;
+r5 := r5 + r1;
+r6 := m[r0][r5];
+m[r2][r1] := r6;
+goto r0 in program m[r2];
+output r7;
+halt;
+if (r0 != 0) r0 := r0;

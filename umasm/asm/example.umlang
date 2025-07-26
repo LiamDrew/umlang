@@ -1,0 +1,17 @@
+if (r0 != 0) r1 := r2;  // conditional move
+r0 := 1; // load value
+r3 := map segment (r0 words); // map segment
+output r0; // output
+halt; // halt
+r6 := m[r0][r5]; // segmented load
+m[r2][r0] := 6; // segmented store
+goto r0 in program m[r2]; // load program
+r1 := input(); // input
+r3 := r1 nand r1; // nand
+r3 := r1 + r2; // addition
+r2 := r0 / r1; // division
+r2 := r0 * r1; // multiplication
+
+
+
+

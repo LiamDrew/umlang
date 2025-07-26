@@ -38,6 +38,10 @@ class Compiler {
         llvm::BasicBlock* dispatchBlock = nullptr;
         llvm::Value* nextInstructionPtr = nullptr;  // Points to next instruction to execute
         size_t currentInstructionIndex = 0;
+
+        void setupExternalFunctions();
+        void runOptimizationPasses();
+
         
         void createDispatchBlock();
         void jumpToDispatch();

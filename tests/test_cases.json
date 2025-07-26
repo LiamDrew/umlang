@@ -89,12 +89,13 @@
       "program": "midmark.um",
       "timeout": 30,
       "benchmark": true
-    },
+    }
+  ],
+  "tricky": [
     {
       "name": "tuffer",
       "program": "tuffer.um",
-      "timeout": 30,
-      "benchmark": true
+      "expected": "11"
     }
   ],
   "stress": [

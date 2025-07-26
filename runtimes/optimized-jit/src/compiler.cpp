@@ -7,13 +7,175 @@
 #include "llvm/Transforms/Utils/Cloning.h"
 #include <cassert>
 
+#include "llvm/Transforms/Utils/Cloning.h"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/StandardInstrumentations.h"
+#include "llvm/Analysis/AliasAnalysis.h"
+#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/GVN.h"
+#include "llvm/Transforms/Utils.h"
+
+#include "llvm/Transforms/Utils/Mem2Reg.h"
+// #include "llvm/Transforms/Utils/SimplifyCFGOptions.h"
+#include "llvm/Transforms/InstCombine/InstCombine.h"
+
+
+
 extern "C" {
     #include "virt.h"
 }
 
-// Compiler::Compiler(size_t programSize) : builder(context), programSize(programSize)
-Compiler::Compiler() : builder(context)
+// Compiler::Compiler() : builder(context)
 
+// {
+//     llvm::InitializeNativeTarget();
+//     llvm::InitializeNativeTargetAsmPrinter();
+//     llvm::InitializeNativeTargetAsmParser();
+
+//     module = std::make_unique<llvm::Module>("um_program", context);
+//     module->setTargetTriple("arm64-apple-macosx15.0.0");
+
+//     // llvm::FunctionType* funcType = llvm::FunctionType::get(
+//     //     llvm::Type::getInt32Ty(context),
+//     //     {llvm::PointerType::getUnqual(context)},
+//     //     false
+//     // );
+
+//     // Change this function type to take no parameters
+//     llvm::FunctionType* funcType = llvm::FunctionType::get(
+//         llvm::Type::getInt32Ty(context),
+//         {}, // No parameters
+//         false
+//     );
+
+//     currentFunction = llvm::Function::Create(
+//         funcType,
+//         llvm::Function::ExternalLinkage,
+//         "main",
+//         module.get()
+//     );
+
+//     // set up usable mem to be used
+//     llvm::Function::arg_iterator args = currentFunction->arg_begin();
+//     llvm::Value* usableMemParam = &*args;
+//     usableMemParam->setName("usable_mem");
+
+//     llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create(
+//         context,
+//         "entry",
+//         currentFunction
+//     );
+//     builder.SetInsertPoint(entryBlock);
+
+//     // usableMemPtr = builder.CreateAlloca(
+//     //     llvm::PointerType::getUnqual(context),
+//     //     nullptr,
+//     //     "usable_mem_ptr"
+//     // );
+//     // builder.CreateStore(usableMemParam, usableMemPtr);
+
+//     // Remove the parameter handling since we don't need it
+//     // Just create the usableMemPtr as a null pointer for now
+//     usableMemPtr = builder.CreateAlloca(
+//         llvm::PointerType::getUnqual(context),
+//         nullptr,
+//         "usable_mem_ptr"
+//     );
+    
+//     // Initialize with null - you can modify this later if needed
+//     llvm::Value* nullPtr = llvm::ConstantPointerNull::get(
+//         llvm::PointerType::getUnqual(context)
+//     );
+//     builder.CreateStore(nullPtr, usableMemPtr);
+
+//     llvm::FunctionType* putcharType = llvm::FunctionType::get(
+//         llvm::Type::getInt32Ty(context), // returns int
+//         {llvm::Type::getInt32Ty(context)}, // takes int parameter
+//         false // not variadic... what does that mean
+//     );
+
+//     putcharFunc = llvm::Function::Create(
+//         putcharType,
+//         llvm::Function::ExternalLinkage,
+//         "putchar",
+//         module.get()
+//     );
+
+//     llvm::FunctionType* getcharType = llvm::FunctionType::get(
+//         llvm::Type::getInt32Ty(context),
+//         {}, // takes no parameters
+//         false
+//     );
+
+//     getcharFunc = llvm::Function::Create(
+//         getcharType,
+//         llvm::Function::ExternalLinkage,
+//         "getchar",
+//         module.get()
+//     );
+
+//     llvm::FunctionType *vsCallocType = llvm::FunctionType::get(
+//         llvm::Type::getInt32Ty(context),
+//         {llvm::Type::getInt32Ty(context)},
+//         false // not variadic
+//     );
+
+//     vsCallocFunc = llvm::Function::Create(
+//         vsCallocType,
+//         llvm::Function::ExternalLinkage,
+//         "vs_calloc",
+//         module.get()
+//     );
+
+//     llvm::FunctionType *vsFreeType = llvm::FunctionType::get(
+//         llvm::Type::getVoidTy(context), //don't need void return type
+//         {llvm::Type::getInt32Ty(context)},
+//         false
+//     );
+
+//     vsFreeFunc = llvm::Function::Create(
+//         vsFreeType,
+//         llvm::Function::ExternalLinkage,
+//         "vs_free",
+//         module.get()
+//     );
+
+
+
+//     // initialize the registers as allocas (stack variables)
+//     for (int i = 0; i < 8; i++) {
+//         registers[i] = builder.CreateAlloca(
+//             llvm::Type:: getInt32Ty(context),
+//             nullptr,
+//             "reg" + std::to_string(i)
+//         );
+
+//         // Initialize all registers to 0
+//         setRegisterValues(i, 0);
+//     }
+
+//     //response B changes:
+//     // After initializing registers, add:
+//     nextInstructionPtr = builder.CreateAlloca(
+//         llvm::Type::getInt32Ty(context),
+//         nullptr,
+//         "next_instruction_ptr"
+//     );
+    
+//     // Initialize to 0 (start at first instruction)
+//     builder.CreateStore(
+//         llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
+//         nextInstructionPtr
+//     );
+
+//     // Initialize JIT
+//     if (auto err = initializeJIT()) {
+//         std::cerr << "Failed to init JIT" << std::endl;
+//     }
+
+// }
+
+Compiler::Compiler() : builder(context)
 {
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
@@ -22,9 +184,10 @@ Compiler::Compiler() : builder(context)
     module = std::make_unique<llvm::Module>("um_program", context);
     module->setTargetTriple("arm64-apple-macosx15.0.0");
 
+    // Function takes no parameters now
     llvm::FunctionType* funcType = llvm::FunctionType::get(
         llvm::Type::getInt32Ty(context),
-        {llvm::PointerType::getUnqual(context)},
+        {}, // No parameters
         false
     );
 
@@ -35,11 +198,6 @@ Compiler::Compiler() : builder(context)
         module.get()
     );
 
-    // set up usable mem to be used
-    llvm::Function::arg_iterator args = currentFunction->arg_begin();
-    llvm::Value* usableMemParam = &*args;
-    usableMemParam->setName("usable_mem");
-
     llvm::BasicBlock* entryBlock = llvm::BasicBlock::Create(
         context,
         "entry",
@@ -47,13 +205,52 @@ Compiler::Compiler() : builder(context)
     );
     builder.SetInsertPoint(entryBlock);
 
+    // Remove the problematic parameter handling
     usableMemPtr = builder.CreateAlloca(
         llvm::PointerType::getUnqual(context),
         nullptr,
         "usable_mem_ptr"
     );
-    builder.CreateStore(usableMemParam, usableMemPtr);
+    
+    // Initialize with null
+    llvm::Value* nullPtr = llvm::ConstantPointerNull::get(
+        llvm::PointerType::getUnqual(context)
+    );
+    builder.CreateStore(nullPtr, usableMemPtr);
 
+    // Set up external functions
+    setupExternalFunctions(); // Make sure this method exists
+
+    // Initialize registers
+    for (int i = 0; i < 8; i++) {
+        registers[i] = builder.CreateAlloca(
+            llvm::Type::getInt32Ty(context),
+            nullptr,
+            "reg" + std::to_string(i)
+        );
+        setRegisterValues(i, 0);
+    }
+
+    // Initialize next instruction pointer
+    nextInstructionPtr = builder.CreateAlloca(
+        llvm::Type::getInt32Ty(context),
+        nullptr,
+        "next_instruction_ptr"
+    );
+    
+    builder.CreateStore(
+        llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
+        nextInstructionPtr
+    );
+
+    // Initialize JIT
+    if (auto err = initializeJIT()) {
+        std::cerr << "Failed to init JIT" << std::endl;
+    }
+}
+
+void Compiler::setupExternalFunctions()
+{
     llvm::FunctionType* putcharType = llvm::FunctionType::get(
         llvm::Type::getInt32Ty(context), // returns int
         {llvm::Type::getInt32Ty(context)}, // takes int parameter
@@ -80,16 +277,6 @@ Compiler::Compiler() : builder(context)
         module.get()
     );
 
-    // NOTE: Be very very suspicious of this code... Pointer types are sus...
-    // llvm::FunctionType *vsCallocType = llvm::FunctionType::get(
-    //     llvm::Type::getInt32Ty(context),
-    //     {
-    //         llvm::PointerType::getUnqual(context),
-    //         llvm::Type::getInt32Ty(context)
-    //     },
-    //     false // not variadic
-    // );
-
     llvm::FunctionType *vsCallocType = llvm::FunctionType::get(
         llvm::Type::getInt32Ty(context),
         {llvm::Type::getInt32Ty(context)},
@@ -115,40 +302,6 @@ Compiler::Compiler() : builder(context)
         "vs_free",
         module.get()
     );
-
-
-
-    // initialize the registers as allocas (stack variables)
-    for (int i = 0; i < 8; i++) {
-        registers[i] = builder.CreateAlloca(
-            llvm::Type:: getInt32Ty(context),
-            nullptr,
-            "reg" + std::to_string(i)
-        );
-
-        // Initialize all registers to 0
-        setRegisterValues(i, 0);
-    }
-
-    //response B changes:
-    // After initializing registers, add:
-    nextInstructionPtr = builder.CreateAlloca(
-        llvm::Type::getInt32Ty(context),
-        nullptr,
-        "next_instruction_ptr"
-    );
-    
-    // Initialize to 0 (start at first instruction)
-    builder.CreateStore(
-        llvm::ConstantInt::get(llvm::Type::getInt32Ty(context), 0),
-        nextInstructionPtr
-    );
-
-    // Initialize JIT
-    if (auto err = initializeJIT()) {
-        std::cerr << "Failed to init JIT" << std::endl;
-    }
-
 }
 
 llvm::Error Compiler::initializeJIT()
@@ -186,6 +339,52 @@ llvm::Error Compiler::initializeJIT()
 void Compiler::printIR() {
     module->print(llvm::outs(), nullptr);
 }
+
+void Compiler::runOptimizationPasses() {
+    //     // Create the analysis managers
+    // llvm::LoopAnalysisManager LAM;
+    // llvm::FunctionAnalysisManager FAM;
+    // llvm::CGSCCAnalysisManager CGAM;
+    // llvm::ModuleAnalysisManager MAM;
+    
+    // // Create the pass builder
+    // llvm::PassBuilder PB;
+    
+    // // Register all the basic analyses with the managers
+    // PB.registerModuleAnalyses(MAM);
+    // PB.registerCGSCCAnalyses(CGAM);
+    // PB.registerFunctionAnalyses(FAM);
+    // PB.registerLoopAnalyses(LAM);
+    // PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+    // // Create a lightweight function pass pipeline
+    // llvm::FunctionPassManager FPM;
+    
+    // // Only add the most impactful passes for JIT code:
+    // FPM.addPass(llvm::PromotePass());        // Convert allocas to registers (huge win for your register loads/stores)
+    // FPM.addPass(llvm::InstCombinePass());    // Combine redundant instructions
+    // FPM.addPass(llvm::SimplifyCFGPass());    // Simplify control flow
+    
+    // // Create module pass manager with just the function pass
+    // llvm::ModulePassManager MPM;
+    // MPM.addPass(llvm::createModuleToFunctionPassAdaptor(std::move(FPM)));
+    
+    // // Run the lightweight optimizations
+    // MPM.run(*module, MAM);
+// Simple approach: just run mem2reg on the function directly
+    llvm::FunctionAnalysisManager FAM;
+    llvm::PassBuilder PB;
+    PB.registerFunctionAnalyses(FAM);
+    
+    // Create a minimal function pass manager
+    llvm::FunctionPassManager FPM;
+    FPM.addPass(llvm::PromotePass());  // This should be the correct name
+    // FPM.addPass(llvm::InstCombinePass());
+    
+    // Run just on your main function
+    FPM.run(*currentFunction, FAM);
+}
+
 
 // set initial register values
 void Compiler::setRegisterValues(int reg, int value) {
@@ -318,12 +517,6 @@ void Compiler::createInstructionLabels(size_t numInstructions) {
 
 void Compiler::compileInstruction(uint32_t word)
 {
-    // // response B
-    //     // For the first instruction, we need to branch from entry to instr_0
-    // if (currentInstructionIndex == 0 && builder.GetInsertBlock()->getName() == "entry") {
-    //     builder.CreateBr(instructionLabels[0]);
-    // }
-    
     // Set insert point to the current instruction's label
     builder.SetInsertPoint(instructionLabels[currentInstructionIndex]);
     
@@ -338,12 +531,7 @@ void Compiler::compileInstruction(uint32_t word)
     b = (word >> 3) & 0x7;
     a = (word >> 6) & 0x7;
 
-    // std::cerr << "Opcode is: " << opcode << std::endl;
-    // Keeping track of if the instruction we are compiling adds a terminator
-    // bool hasTerminator = false;
-
     bool addedTerminator = false;
-
 
     switch (opcode) {
         case 13: {
@@ -507,14 +695,220 @@ void Compiler::compileUnmap(int regC)
     builder.CreateCall(vsFreeFunc, {freeAddr});
 }
 
+// void Compiler::compileLoad(int regA, int regB, int regC)
+// {
+//     // load segment id from register B
+//     llvm::Value* segmentId = builder.CreateLoad(
+//         llvm::Type::getInt32Ty(context),
+//         registers[regB],
+//         "load_segment_id"
+//     );
+
+//     // load the offset from register C
+//     llvm::Value* offset = builder.CreateLoad(
+//         llvm::Type::getInt32Ty(context),
+//         registers[regC],
+//         "load_offset"
+//     );
+
+//     // load usable memory base address
+//     llvm::Value* usableMemBase = builder.CreateLoad(
+//         llvm::PointerType::getUnqual(context),
+//         usableMemPtr,
+//         "usable_mem_base"
+//     );
+
+//     // calculate absolute address (check this)
+//     llvm::Value *segmentPtr = builder.CreateGEP(
+//         llvm::Type::getInt8Ty(context),
+//         usableMemBase,
+//         segmentId,
+//         "segment_ptr"
+//     );
+
+//     // add the offset
+//     llvm::Value* finalPtr = builder.CreateGEP(
+//         llvm::Type::getInt8Ty(context),
+//         segmentPtr,
+//         offset,
+//         "final_ptr"
+//     );
+
+//     // load value as uint32_t
+//     llvm::Value* loadedValue = builder.CreateLoad(
+//         llvm::Type::getInt32Ty(context),
+//         finalPtr,
+//         "loaded_value"
+//     );
+
+//     // store result in registerA
+//     builder.CreateStore(loadedValue, registers[regA]);
+// }
+
+
+// Fixed pointer arithmetic for load operation
 void Compiler::compileLoad(int regA, int regB, int regC)
 {
-    return;
+    // load segment id from register B
+    llvm::Value* segmentId = builder.CreateLoad(
+        llvm::Type::getInt32Ty(context),
+        registers[regB],
+        "load_segment_id"
+    );
+
+    // load the offset from register C
+    llvm::Value* offset = builder.CreateLoad(
+        llvm::Type::getInt32Ty(context),
+        registers[regC],
+        "load_offset"
+    );
+
+    // load usable memory base address
+    llvm::Value* usableMemBase = builder.CreateLoad(
+        llvm::PointerType::getUnqual(context),
+        usableMemPtr,
+        "usable_mem_base"
+    );
+
+    // Cast to int32 pointer for proper arithmetic
+    llvm::Value* int32BasePtr = builder.CreatePointerCast(
+        usableMemBase,
+        llvm::PointerType::get(llvm::Type::getInt32Ty(context), 0),
+        "int32_base_ptr"
+    );
+
+    // Calculate segment address (segment_id * some_segment_size)
+    // Assuming segments are stored as consecutive blocks
+    llvm::Value* segmentPtr = builder.CreateGEP(
+        llvm::Type::getInt32Ty(context),
+        int32BasePtr,
+        segmentId,
+        "segment_ptr"
+    );
+
+    // Add the offset (now in terms of int32 elements)
+    llvm::Value* finalPtr = builder.CreateGEP(
+        llvm::Type::getInt32Ty(context),
+        segmentPtr,
+        offset,
+        "final_ptr"
+    );
+
+    // Load the 32-bit value
+    llvm::Value* loadedValue = builder.CreateLoad(
+        llvm::Type::getInt32Ty(context),
+        finalPtr,
+        "loaded_value"
+    );
+
+    // Store result in register A
+    builder.CreateStore(loadedValue, registers[regA]);
 }
 
+
+// void Compiler::compileStore(int regA, int regB, int regC)
+// {
+//     // load segmentID from register A
+//     llvm::Value* segmentId = builder.CreateLoad(
+//         llvm::Type::getInt32Ty(context),
+//         registers[regA],
+//         "store_segment_id"
+//     );
+
+//     // load offset from register B
+//     llvm::Value* offset = builder.CreateLoad(
+//         llvm::Type::getInt32Ty(context),
+//         registers[regB],
+//         "store_offset"
+//     );
+
+//     // load the value to store from register C
+//     llvm::Value* valueToStore = builder.CreateLoad(
+//         llvm::Type::getInt32Ty(context),
+//         registers[regC],
+//         "value_to_store"
+//     );
+
+//     llvm::Value* usableMemBase = builder.CreateLoad(
+//         llvm::PointerType::getUnqual(context),
+//         usableMemPtr,
+//         "usable_mem_base"
+//     );
+
+//     llvm::Value* segmentPtr = builder.CreateGEP(
+//         llvm::Type::getInt8Ty(context),
+//         usableMemBase,
+//         segmentId,
+//         "segment_ptr"
+//     );
+
+//     llvm::Value* finalPtr = builder.CreateGEP(
+//         llvm::Type::getInt8Ty(context),
+//         segmentPtr,
+//         offset,
+//         "final_ptr"
+//     );
+
+//     builder.CreateStore(valueToStore, finalPtr);
+// }
+
+
+// Fixed pointer arithmetic for store operation
 void Compiler::compileStore(int regA, int regB, int regC)
 {
-    return;
+    // load segmentID from register A
+    llvm::Value* segmentId = builder.CreateLoad(
+        llvm::Type::getInt32Ty(context),
+        registers[regA],
+        "store_segment_id"
+    );
+
+    // load offset from register B
+    llvm::Value* offset = builder.CreateLoad(
+        llvm::Type::getInt32Ty(context),
+        registers[regB],
+        "store_offset"
+    );
+
+    // load the value to store from register C
+    llvm::Value* valueToStore = builder.CreateLoad(
+        llvm::Type::getInt32Ty(context),
+        registers[regC],
+        "value_to_store"
+    );
+
+    // load usable memory base address
+    llvm::Value* usableMemBase = builder.CreateLoad(
+        llvm::PointerType::getUnqual(context),
+        usableMemPtr,
+        "usable_mem_base"
+    );
+
+    // Cast to int32 pointer for proper arithmetic
+    llvm::Value* int32BasePtr = builder.CreatePointerCast(
+        usableMemBase,
+        llvm::PointerType::get(llvm::Type::getInt32Ty(context), 0),
+        "int32_base_ptr"
+    );
+
+    // Calculate segment address
+    llvm::Value* segmentPtr = builder.CreateGEP(
+        llvm::Type::getInt32Ty(context),
+        int32BasePtr,
+        segmentId,
+        "segment_ptr"
+    );
+
+    // Add the offset
+    llvm::Value* finalPtr = builder.CreateGEP(
+        llvm::Type::getInt32Ty(context),
+        segmentPtr,
+        offset,
+        "final_ptr"
+    );
+
+    // Store the value
+    builder.CreateStore(valueToStore, finalPtr);
 }
 
 void Compiler::jumpToDispatch() {
@@ -571,6 +965,8 @@ void Compiler::createDispatchBlock() {
 
 llvm::Error Compiler::executeJIT()
 {
+    // runOptimizationPasses();  // <-- dd this line here
+
     // Verify the module before JIT compilation
     std::string errorStr;
     llvm::raw_string_ostream errorStream(errorStr);
@@ -581,33 +977,82 @@ llvm::Error Compiler::executeJIT()
         );
     }
     
-    // Create a new context for the ThreadSafeModule
-    auto newContext = std::make_unique<llvm::LLVMContext>();
+    // // Create a new context for the ThreadSafeModule
+    // auto newContext = std::make_unique<llvm::LLVMContext>();
     
-    // Clone the module to the new context
-    auto clonedModule = llvm::CloneModule(*module);
+    // // Clone the module to the new context
+    // auto clonedModule = llvm::CloneModule(*module);
     
-    // Create a ThreadSafeModule and add it to the JIT
-    auto tsm = llvm::orc::ThreadSafeModule(std::move(clonedModule), std::move(newContext));
+    // // Create a ThreadSafeModule and add it to the JIT
+    // auto tsm = llvm::orc::ThreadSafeModule(std::move(clonedModule), std::move(newContext));
+    
+    // if (auto err = jit->addIRModule(std::move(tsm))) {
+    //     return err;
+    // }
+    
+    // // Look up the main function
+    // auto mainSymbol = jit->lookup("main");
+    // if (!mainSymbol) {
+    //     return mainSymbol.takeError();
+    // }
+    
+    // // Get the address and cast it to a function pointer
+    // auto mainAddr = mainSymbol->getValue();
+    // auto mainFunc = reinterpret_cast<int(*)()>(mainAddr);
+    
+    // // Execute the function
+    // // std::cout << "Executing JIT compiled program..." << std::endl;
+    // int result = mainFunc();
+    // // std::cout << "\nProgram finished with exit code: " << result << std::endl;
+    
+    // return llvm::Error::success();
+
+        // Create ThreadSafeModule directly from your existing module and context
+    // No cloning needed!
+
+    // Create ThreadSafeModule directly without cloning
+    // auto tsm = llvm::orc::ThreadSafeModule(std::move(module), nullptr);
+    
+    // if (auto err = jit->addIRModule(std::move(tsm))) {
+    //     return err;
+    // }
+    
+    // // Look up the main function
+    // auto mainSymbol = jit->lookup("main");
+    // if (!mainSymbol) {
+    //     return mainSymbol.takeError();
+    // }
+    
+    // // Get the address and cast it to a function pointer
+    // auto mainAddr = mainSymbol->getValue();
+    // auto mainFunc = reinterpret_cast<int(*)()>(mainAddr);
+    
+    // // Execute the function
+    // int result = mainFunc();
+    
+    // return llvm::Error::success();
+
+       // Create ThreadSafeModule - let it create its own context
+    // This is the simplest approach that avoids ownership issues
+   // The constructor wants a unique_ptr<LLVMContext>, not ThreadSafeContext
+    auto tsm = llvm::orc::ThreadSafeModule(
+        std::move(module), 
+        std::make_unique<llvm::LLVMContext>()  // Create a new LLVMContext
+    );
     
     if (auto err = jit->addIRModule(std::move(tsm))) {
         return err;
     }
     
-    // Look up the main function
     auto mainSymbol = jit->lookup("main");
     if (!mainSymbol) {
         return mainSymbol.takeError();
     }
     
-    // Get the address and cast it to a function pointer
     auto mainAddr = mainSymbol->getValue();
     auto mainFunc = reinterpret_cast<int(*)()>(mainAddr);
     
-    // Execute the function
-    // std::cout << "Executing JIT compiled program..." << std::endl;
     int result = mainFunc();
-    // std::cout << "\nProgram finished with exit code: " << result << std::endl;
     
     return llvm::Error::success();
 }
